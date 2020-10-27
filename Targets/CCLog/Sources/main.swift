@@ -1,0 +1,4 @@
+import CCLogCore
+
+
+CCLog.main()
