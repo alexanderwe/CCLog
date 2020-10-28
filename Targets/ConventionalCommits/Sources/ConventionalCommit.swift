@@ -9,7 +9,6 @@ import ParserCombinator
 
 public struct ConventionalCommit {
    
-    
     public let type: String
     public let scope: String?
     public let description: String
@@ -20,6 +19,9 @@ public struct ConventionalCommit {
     
     private static let parser: Parser<ConventionalCommit> = {
        
+        let anyScope = Parser.prefix(while: {  $0 != "(" && $0 != ")" && !$0.isNewline })
+            .flatMap { $0.isEmpty ? .never : Parser.always($0) }
+        
         let anyLetter = Parser.prefix(while: { $0.isLetter })
             .flatMap { $0.isEmpty ? .never : Parser.always($0) }
 
@@ -31,10 +33,7 @@ public struct ConventionalCommit {
         
         let type = anyLetter
         
-        // TODO: Need a `between` Parser here 
-        let scope = zip("(", anyLetter, ")")
-            .flatMap { .always($0.1) }
-        
+        let scope = anyScope.between(a: "(", b: ")")
         
         return zip(type, scope.optional, isBreaking, ": ", anyCharacter)
             .map { type, scope, isBreaking,  _, description in

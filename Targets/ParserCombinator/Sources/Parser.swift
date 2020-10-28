@@ -34,6 +34,17 @@ extension Parser {
     }
 }
 
+extension Parser {
+    public func between(
+        a: Parser<Void>,
+        b: Parser<Void>
+    ) -> Parser<Output> {
+        zip(a, self, b)
+            .flatMap { .always($0.1) }
+    }
+}
+
+
 // MARK: - Type extensions
 
 
@@ -191,9 +202,7 @@ extension Parser {
 }
 
 
-
 // MARK: - Combinators
-
 
 // MARK: Map
 extension Parser {
@@ -287,6 +296,3 @@ extension Parser: ExpressibleByStringLiteral where Output == Void {
         self = .prefix(value)
     }
 }
-
-
-
