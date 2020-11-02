@@ -34,17 +34,6 @@ extension Parser {
     }
 }
 
-extension Parser {
-    public func between(
-        a: Parser<Void>,
-        b: Parser<Void>
-    ) -> Parser<Output> {
-        zip(a, self, b)
-            .flatMap { .always($0.1) }
-    }
-}
-
-
 // MARK: - Type extensions
 
 
@@ -248,35 +237,55 @@ public func zip<Output1, Output2>(
     }
 }
 
-public func zip<Output1, Output2, Output3>(
-    _ p1: Parser<Output1>,
-    _ p2: Parser<Output2>,
-    _ p3: Parser<Output3>
-) -> Parser<(Output1, Output2, Output3)> {
-    zip(p1, zip(p2, p3))
-        .map { output1, output23 in (output1, output23.0, output23.1) }
+
+// MARK: take and skip
+extension Parser {
+    
+    public func skip<B>(_ p: Parser<B>) -> Self {
+        zip(self, p).map {a, _ in a}
+    }
+    
+    public func take<NewOutput>(_ p: Parser<NewOutput>) -> Parser<(Output, NewOutput)> {
+        zip(self, p)
+    }
 }
 
-public func zip<A, B, C, D>(
-    _ a: Parser<A>,
-    _ b: Parser<B>,
-    _ c: Parser<C>,
-    _ d: Parser<D>
-) -> Parser<(A, B, C, D)> {
-    zip(a, zip(b, c, d))
-        .map { a, bcd in (a, bcd.0, bcd.1, bcd.2) }
+
+extension Parser {
+
+    //(Parser<(A, B)>, Parser<C>) -> Parser<(A, B, C)>
+    public func take<A, B, C>(_ p: Parser<C>) -> Parser<(A, B, C)> where Output == (A, B) {
+        zip(self, p).map { ab, c in
+            (ab.0, ab.1, c)
+        }
+    }
+    
+    //(Parser<(A, B, C)>, Parser<D>) -> Parser<(A, B, C, D)>
+    public func take<A, B, C, D>(_ p: Parser<D>) -> Parser<(A, B, C, D)> where Output == (A, B, C) {
+        zip(self, p).map { abc, d in
+            (abc.0, abc.1, abc.2, d)
+        }
+    }
+    
 }
 
-public func zip<A, B, C, D, E>(
-    _ a: Parser<A>,
-    _ b: Parser<B>,
-    _ c: Parser<C>,
-    _ d: Parser<D>,
-    _ e: Parser<E>
-) -> Parser<(A, B, C, D, E)> {
-    zip(a, zip(b, c, d, e))
-        .map { a, bcde in (a, bcde.0, bcde.1, bcde.2, bcde.3) }
+
+extension Parser {
+    public static func skip(_ p: Self) -> Parser<Void> {
+        p.map {_ in () }
+    }
 }
+
+
+extension Parser where Output == Void {
+    
+    public func take<A>(_ p: Parser<A>) -> Parser<A> {
+        zip(self, p).map {_, a in a}
+    }
+}
+
+
+
 
 
 

@@ -33,19 +33,27 @@ public struct ConventionalCommit {
         
         let type = anyLetter
         
-        let scope = anyScope.between(a: "(", b: ")")
+        let scope = Parser.skip("(")
+            .take(anyScope)
+            .skip(")")
         
-        return zip(type, scope.optional, isBreaking, ": ", anyCharacter)
-            .map { type, scope, isBreaking,  _, description in
+        return type
+            .take(scope.optional)
+            .take(isBreaking)
+            .skip(": ")
+            .take(anyCharacter.map(String.init))
+            .map { type, scope, isBreaking, description in
                 ConventionalCommit(
                     type: String(type),
                     scope: scope == nil ? nil: String(scope!),
-                    description: String(description),
+                    description: description,
                     body: nil,
                     breaking: isBreaking,
                     footer: nil
                 )
-          }
+                
+            }
+
     }()
     
     public init?(data: String) {
