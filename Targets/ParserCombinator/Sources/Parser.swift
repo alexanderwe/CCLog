@@ -8,13 +8,13 @@
 import Foundation
 
 // MARK: - Base
-public struct Parser<Output> {
-    public let run: (inout Substring) -> Output?
+public struct Parser<Input, Output> {
+    public let run: (inout Input) -> Output?
 }
 
 extension Parser {
-    public func run(_ input: String) -> (match: Output?, rest: Substring) {
-        var input = input[...]
+    public func run(_ input: Input) -> (match: Output?, rest: Input) {
+        var input = input
         let match = self.run(&input)
         return (match, input)
     }
@@ -29,7 +29,7 @@ extension Parser {
         Self { _ in nil }
     }
     
-    public var optional: Parser<Output?> {
+    public var optional: Parser<Input, Output?> {
         .init { input in .some(self.run(&input)) }
     }
 }
@@ -40,7 +40,7 @@ extension Parser {
 //MARK: Int
 // Parser<Int>.int
 // .int
-extension Parser where Output == Int {
+extension Parser where Input == Substring, Output == Int {
     public static let int = Self { input in
         let original = input
         
@@ -62,7 +62,7 @@ extension Parser where Output == Int {
 }
 
 //MARK: Double
-extension Parser where Output == Double {
+extension Parser where Input == Substring, Output == Double {
     public  static let double = Self { input in
         let original = input
         let sign: Double
@@ -95,7 +95,7 @@ extension Parser where Output == Double {
 }
 
 // MARK: Character
-extension Parser where Output == Character {
+extension Parser where Input == Substring, Output == Character {
     public static let char = Self { input in
         guard !input.isEmpty else { return nil }
         return input.removeFirst()
@@ -103,18 +103,28 @@ extension Parser where Output == Character {
 }
 
 // MARK: - Prefix
-extension Parser where Output == Void {
-    public static func prefix(_ p: String) -> Self {
-        Self { input in
-            guard input.hasPrefix(p) else { return nil }
-            input.removeFirst(p.count)
-            return ()
-        }
-    }
+extension Parser
+where Input: Collection,
+      Input.SubSequence == Input,
+      Output == Void,
+      Input.Element: Equatable {
+    
+      public static func prefix(_ p: Input.SubSequence) -> Self {
+          Self { input in
+              guard input.starts(with: p) else { return nil }
+              input.removeFirst(p.count)
+              return ()
+          }
+      }
 }
 
-extension Parser where Output == Substring {
-    public static func prefix(while p: @escaping (Character) -> Bool) -> Self {
+extension Parser
+where
+    Input: Collection,
+    Input.SubSequence == Input,
+    Output == Input {
+    
+    public static func prefix(while p: @escaping (Input.Element) -> Bool) -> Self {
         Self { input in
             let output = input.prefix(while: p)
             input.removeFirst(output.count)
@@ -123,33 +133,57 @@ extension Parser where Output == Substring {
     }
 }
 
-extension Parser where Output == Substring {
-    public static func prefix(upTo substring: Substring) -> Self {
-        Self { input in
-            guard let endIndex = input.range(of: substring)?.lowerBound
-            else { return nil }
-            
-            let match = input[..<endIndex]
-            
-            input = input[endIndex...]
-            
-            return match
-        }
-    }
+
+
+extension Parser
+where
+    Input: Collection,
+    Input.SubSequence == Input,
+    Input.Element: Equatable,
+    Output == Input {
     
-    public static func prefix(through substring: Substring) -> Self {
+    public static func prefix(upTo subsequence: Input) -> Self {
         Self { input in
-            guard let endIndex = input.range(of: substring)?.upperBound
-            else { return nil }
-            
-            let match = input[..<endIndex]
-            
-            input = input[endIndex...]
-            
-            return match
+            guard !subsequence.isEmpty else { return subsequence }
+            let original = input
+            while !input.isEmpty {
+                if input.starts(with: subsequence) {
+                    return original[..<input.startIndex]
+                } else {
+                    input.removeFirst()
+                }
+            }
+            input = original
+            return nil
         }
     }
 }
+
+extension Parser
+where
+    Input: Collection,
+    Input.SubSequence == Input,
+    Input.Element: Equatable,
+    Output == Input {
+    public static func prefix(through subsequence: Input) -> Self {
+        Self { input in
+            guard !subsequence.isEmpty else { return subsequence }
+            let original = input
+            while !input.isEmpty {
+                if input.starts(with: subsequence) {
+                    return original[..<input.startIndex]
+                } else {
+                    let index = input.index(input.startIndex, offsetBy: subsequence.count)
+                    input = input[index...]
+                    return original[..<index]
+                }
+            }
+            input = original
+            return nil
+        }
+    }
+}
+
 
 // MARK: - Parser amount
 extension Parser {
@@ -172,9 +206,9 @@ extension Parser {
 
 extension Parser {
     public func zeroOrMore(
-        separatedBy separator: Parser<Void> = ""
-    ) -> Parser<[Output]> {
-        Parser<[Output]> { input in
+        separatedBy separator: Parser<Input, Void> = .always(())
+    ) -> Parser<Input, [Output]> {
+        Parser<Input, [Output]> { input in
             var rest = input
             var matches: [Output] = []
             while let match = self.run(&input) {
@@ -195,7 +229,7 @@ extension Parser {
 
 // MARK: Map
 extension Parser {
-    public func map<NewOutput>(_ f: @escaping (Output) -> NewOutput) -> Parser<NewOutput> {
+    public func map<NewOutput>(_ f: @escaping (Output) -> NewOutput) -> Parser<Input, NewOutput> {
         .init { input in
             self.run(&input).map(f)
         }
@@ -205,8 +239,8 @@ extension Parser {
 // MARK: FlatMap
 extension Parser {
     public func flatMap<NewOutput>(
-        _ f: @escaping (Output) -> Parser<NewOutput>
-    ) -> Parser<NewOutput> {
+        _ f: @escaping (Output) -> Parser<Input, NewOutput>
+    ) -> Parser<Input, NewOutput> {
         .init { input in
             let original = input
             let output = self.run(&input)
@@ -221,10 +255,10 @@ extension Parser {
 }
 
 // MARK: zip
-public func zip<Output1, Output2>(
-    _ p1: Parser<Output1>,
-    _ p2: Parser<Output2>
-) -> Parser<(Output1, Output2)> {
+public func zip<Input, Output1, Output2>(
+    _ p1: Parser<Input, Output1>,
+    _ p2: Parser<Input, Output2>
+) -> Parser<Input, (Output1, Output2)> {
     
     .init { input -> (Output1, Output2)? in
         let original = input
@@ -241,27 +275,27 @@ public func zip<Output1, Output2>(
 // MARK: take and skip
 extension Parser {
     
-    public func skip<B>(_ p: Parser<B>) -> Self {
+    public func skip<B>(_ p: Parser<Input, B>) -> Self {
         zip(self, p).map {a, _ in a}
     }
     
-    public func take<NewOutput>(_ p: Parser<NewOutput>) -> Parser<(Output, NewOutput)> {
+    public func take<NewOutput>(_ p: Parser<Input, NewOutput>) -> Parser<Input, (Output, NewOutput)> {
         zip(self, p)
     }
 }
 
 
 extension Parser {
-
+    
     //(Parser<(A, B)>, Parser<C>) -> Parser<(A, B, C)>
-    public func take<A, B, C>(_ p: Parser<C>) -> Parser<(A, B, C)> where Output == (A, B) {
+    public func take<A, B, C>(_ p: Parser<Input, C>) -> Parser<Input, (A, B, C)> where Output == (A, B) {
         zip(self, p).map { ab, c in
             (ab.0, ab.1, c)
         }
     }
     
     //(Parser<(A, B, C)>, Parser<D>) -> Parser<(A, B, C, D)>
-    public func take<A, B, C, D>(_ p: Parser<D>) -> Parser<(A, B, C, D)> where Output == (A, B, C) {
+    public func take<A, B, C, D>(_ p: Parser<Input, D>) -> Parser<Input, (A, B, C, D)> where Output == (A, B, C) {
         zip(self, p).map { abc, d in
             (abc.0, abc.1, abc.2, d)
         }
@@ -271,7 +305,7 @@ extension Parser {
 
 
 extension Parser {
-    public static func skip(_ p: Self) -> Parser<Void> {
+    public static func skip(_ p: Self) -> Parser<Input, Void> {
         p.map {_ in () }
     }
 }
@@ -279,7 +313,7 @@ extension Parser {
 
 extension Parser where Output == Void {
     
-    public func take<A>(_ p: Parser<A>) -> Parser<A> {
+    public func take<A>(_ p: Parser<Input, A>) -> Parser<Input, A> {
         zip(self, p).map {_, a in a}
     }
 }
@@ -290,18 +324,18 @@ extension Parser where Output == Void {
 
 
 // MARK: - Convenience
-extension Parser: ExpressibleByUnicodeScalarLiteral where Output == Void {
+extension Parser: ExpressibleByUnicodeScalarLiteral where Input == Substring, Output == Void {
     public typealias UnicodeScalarLiteralType = StringLiteralType
 }
 
-extension Parser: ExpressibleByExtendedGraphemeClusterLiteral where Output == Void {
+extension Parser: ExpressibleByExtendedGraphemeClusterLiteral where Input == Substring, Output == Void {
     public typealias ExtendedGraphemeClusterLiteralType = StringLiteralType
 }
 
-extension Parser: ExpressibleByStringLiteral where Output == Void {
+extension Parser: ExpressibleByStringLiteral where Input == Substring, Output == Void {
     public typealias StringLiteralType = String
     
     public init(stringLiteral value: String) {
-        self = .prefix(value)
+        self = .prefix(value[...])
     }
 }

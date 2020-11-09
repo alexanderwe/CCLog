@@ -15,6 +15,7 @@ import SwiftGit2
 
 public enum CCLogCore {
     public static func generateGitLog(from repository: URL) -> Result<Void, CCLogError> {
+        
         let c = try? ConventionalCommit(data: "fix(ci-test)!: Include correct location for code coverage file")
         print(c)
         

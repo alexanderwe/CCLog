@@ -17,18 +17,19 @@ public struct ConventionalCommit {
     public let footer: String?
     
     
-    private static let parser: Parser<ConventionalCommit> = {
-       
-        let anyScope = Parser.prefix(while: {  $0 != "(" && $0 != ")" && !$0.isNewline })
+    private static let parser: Parser<Substring, ConventionalCommit> = {
+           
+        let anyScope = Parser<Substring, Substring>.prefix(while: {  $0 != "(" && $0 != ")" && !$0.isNewline })
             .flatMap { $0.isEmpty ? .never : Parser.always($0) }
         
-        let anyLetter = Parser.prefix(while: { $0.isLetter })
+        let anyLetter = Parser<Substring, Substring>.prefix(while: { $0.isLetter })
             .flatMap { $0.isEmpty ? .never : Parser.always($0) }
 
-        let anyCharacter = Parser.prefix(while: { $0.isLetter || $0.isWhitespace || $0.isSymbol })
+        let anyCharacter = Parser<Substring, Substring>.prefix(while: { $0.isLetter || $0.isWhitespace || $0.isSymbol })
             .flatMap { $0.isEmpty ? .never : Parser.always($0) }
 
-        let isBreaking = Parser.prefix("!").optional
+        
+        let isBreaking = Parser<Substring, Void>.prefix("!").optional
             .flatMap { $0 != nil ? .always(true) :  .always(false)}
         
         let type = anyLetter
@@ -57,7 +58,7 @@ public struct ConventionalCommit {
     }()
     
     public init?(data: String) {
-        guard let match = ConventionalCommit.parser.run(data).match else {
+        guard let match = ConventionalCommit.parser.run(data[...]).match else {
             return nil
         }
         
