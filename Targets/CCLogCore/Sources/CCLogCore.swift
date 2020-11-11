@@ -105,21 +105,41 @@ public enum CCLogCore {
     public static func traverseCommits(from start: Commit, to end: Commit, in repository: Repository) -> [Commit] {
         var commits: [Commit] = []
     
-        var pointer: OpaquePointer? = nil
-        defer { git_revwalk_free(pointer) }
+        var walker: OpaquePointer? = nil
+        defer { git_revwalk_free(walker) }
         
-        let mutPoibter = UnsafeMutablePointer<OpaquePointer?>.init(pointer)
+       
+//        git_revwalk *walker;
+//        int error = git_revwalk_new(&walker, repo);
+//        error = git_revwalk_push_range(walker, "HEAD~20..HEAD");
+//
+//        git_oid oid;
+//        while (!git_revwalk_next(&oid, walker)) {
+//          /* … */
+//        }
         
-        git_revwalk_new(<#T##out: UnsafeMutablePointer<OpaquePointer?>!##UnsafeMutablePointer<OpaquePointer?>!#>, <#T##repo: OpaquePointer!##OpaquePointer!#>)
-        git_revwalk_new(mutPoibter, repository.pointer)
-        git_revwalk_next(<#T##out: UnsafeMutablePointer<git_oid>!##UnsafeMutablePointer<git_oid>!#>, <#T##walk: OpaquePointer!##OpaquePointer!#>)
+        
+        var error: Int32 = git_revwalk_new(&walker, repository.pointer)
+        
+        // "v1.0.0..v2.0.0"
+        error = git_revwalk_push_range(walker, "1f71349389231defc4e7c740827b4e006eadf46d..13ca1f69904732297179012a083cf944a79c63e9")
+        
+        
+       
+        
     
-
+        var oid: git_oid = git_oid()
+        var revWalkError: Int32 = GIT_OK.rawValue
+    
+        while (revWalkError = git_revwalk_next(&oid, walker), revWalkError).1 == GIT_OK.rawValue {
+            print(OID(oid).description)
+        }
+        print(revWalkError)
         
-        print("Start: \(start.oid.description) -> End: \(end.oid.description)")
+        //print("Start: \(start.oid.description) -> End: \(end.oid.description)")
         
         
-        self.traverseCommits(from: start.oid, to: end.oid, in: repository, history: &commits)
+        //self.traverseCommits(from: start.oid, to: end.oid, in: repository, history: &commits)
         return commits
     }
     
