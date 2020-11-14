@@ -27,10 +27,18 @@ public extension Sequence where Element: Hashable {
 
 
 public enum CCLogCore {
-    public static func generateGitLog(from repository: URL) -> Result<Void, CCLogError> {
+    public static func generateGitLog(
+        tagQuery: String,
+        from repository: URL
+    ) -> Result<Void, CCLogError> {
         
-        let c = try? ConventionalCommit(data: "fix(ci-test)!: Include correct location for code coverage file")
-        print(c)
+        guard let tagQuery = TagQuery(data: tagQuery) else {
+            return .failure(.tagQueryInvalid)
+        }
+        
+//        
+//        let c = try? ConventionalCommit(data: "fix(ci-test)!: Include correct location for code coverage file")
+//        print(c)
         
         switch Repository.at(repository) {
         case let .success(repo):
@@ -47,36 +55,8 @@ public enum CCLogCore {
             return .failure(.gitError(error: GitError(from: error)))
         }
         
-        
-        
-        
         return .success(())
         
-        
-        
-        
-//        let url = URL(string: "./")!
-//        let res = Repository.at(url)
-//
-//        switch res {
-//        case let .success(repo):
-//
-//            let latestCommit = repo.commit(OID(string: "")!)
-//
-//
-//            switch latestCommit {
-//            case let .success(commit):
-//
-//                let c = try? ConventionalCommit(data: "fix(ci-test)!: Include correct location for code coverage file")
-//                print(c)
-//
-//            case let .failure(error):
-//                print("Could not get commit: \(error)")
-//            }
-//
-//        case let .failure(error):
-//            print("Could not open repository: \(error)")
-//        }
     }
     
     
@@ -88,13 +68,8 @@ public enum CCLogCore {
             let start = try? repository.commit(tags.first!.oid).get()
             let end = try? repository.commit(tags.last!.oid).get()
         
-            let t: [Commit] = self.traverseCommits(from: start!, to: end!, in: repository)
-                .distinct()
-                .sorted { $0.committer.time.compare($1.committer.time) == .orderedDescending
-            }
-      
-
-            t.forEach { print($0.firstMessageLine) }
+            print(self.traverseCommits(from: start!, to: end!, in: repository))
+            
         case let .failure(error):
             print(error)
         }
@@ -102,98 +77,45 @@ public enum CCLogCore {
     
     
     
-    public static func traverseCommits(from start: Commit, to end: Commit, in repository: Repository) -> [Commit] {
+    public static func traverseCommits(from start: Commit, to end: Commit, in repository: Repository) -> Result<[Commit], GitError> {
+        
+        // Function parameters
         var commits: [Commit] = []
-    
         var walker: OpaquePointer? = nil
+        
+        
+        // Free memory after successful revwalk
         defer { git_revwalk_free(walker) }
-        
-       
-//        git_revwalk *walker;
-//        int error = git_revwalk_new(&walker, repo);
-//        error = git_revwalk_push_range(walker, "HEAD~20..HEAD");
-//
-//        git_oid oid;
-//        while (!git_revwalk_next(&oid, walker)) {
-//          /* … */
-//        }
-        
-        
-        var error: Int32 = git_revwalk_new(&walker, repository.pointer)
-        
-        // "v1.0.0..v2.0.0"
-        error = git_revwalk_push_range(walker, "1f71349389231defc4e7c740827b4e006eadf46d..13ca1f69904732297179012a083cf944a79c63e9")
-        
-        
        
         
-    
+        // Init git_revwalk
+        var gitError: Int32 = git_revwalk_new(&walker, repository.pointer)
+        guard gitError == GIT_OK.rawValue else {
+            return .failure(GitError(from: NSError(gitError: gitError, pointOfFailure: "git_revwalk_new")))
+        }
+        
+        gitError = git_revwalk_push_range(walker, "\(end.oid.description)..\(start.oid.description)")
+        
+        guard gitError == GIT_OK.rawValue else {
+            return .failure(GitError(from: NSError(gitError: gitError, pointOfFailure: "git_revwalk_push_range")))
+        }
+        
         var oid: git_oid = git_oid()
         var revWalkError: Int32 = GIT_OK.rawValue
     
         while (revWalkError = git_revwalk_next(&oid, walker), revWalkError).1 == GIT_OK.rawValue {
-            print(OID(oid).description)
+            let c = repository.commit(OID(oid))
+            commits.append(try! c.get())
         }
-        print(revWalkError)
         
-        //print("Start: \(start.oid.description) -> End: \(end.oid.description)")
+        if revWalkError != GIT_ITEROVER.rawValue {
+            return .failure(GitError(from: NSError(gitError: gitError, pointOfFailure: "git_revwalk_next")))
+        }
         
         
-        //self.traverseCommits(from: start.oid, to: end.oid, in: repository, history: &commits)
-        return commits
+        commits.append(start)
+        return .success(commits)
     }
-    
-    
-    
-    
-//    - (void)traverseCommits: (GTCommit *)start withGoal: (GTCommit *)goal withHistory: (NSMutableDictionary *)history{
-//        NSLog(@"%@", start.shortSHA);
-//        if ([start.SHA isEqualToString:goal.SHA]) {
-//            return;
-//        }
-//        for (GTCommit *c in start.parents) {
-//            //[history setObject:c forKey:c.SHA];
-//            if(![c.SHA isEqualToString:goal.SHA])
-//                [self traverseCommits:c withGoal:goal withHistory:history];
-//
-//        }
-//    }
-    
-    
-    
-    
-    public static func traverseCommits(from start: OID, to end: OID, in repository: Repository, history: inout [Commit]) {
-        print("Start traversing commit history from \(start.description)")
-        
-        guard case let .success(startCommit) = repository.commit(start) else {
-            return
-        }
-        
-        
-        if(start == end) {
-            guard case let .success(s) = repository.commit(start),
-                  case let .success(e) = repository.commit(end)  else {
-                return
-            }
-            print("\(s.firstMessageLine) == \(e.firstMessageLine)")
-            return
-        }
-        
-       
-       
-        startCommit.parents.forEach { pointer in
-            guard case let .success(commitToAdd) = repository.commit(pointer.oid) else {
-                return
-            }
-            history.append(commitToAdd)
-            
-            if pointer.oid != end {
-                self.traverseCommits(from: commitToAdd.oid, to: end, in: repository, history: &history)
-            }
-        }
-        
-    }
-    
 }
 
 

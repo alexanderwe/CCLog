@@ -38,7 +38,7 @@ A Swift command-line tool to generate change log files for conventional commits
     var tagFilter: String?
     
     @Option(name: [.customShort("q"), .long], help: "Query to specify range of git tags to include")
-    var tagQuery: String?
+    var tagQuery: String
 
     // MARK: - Initializers
     public init() {
@@ -55,11 +55,14 @@ A Swift command-line tool to generate change log files for conventional commits
     // MARK: - Run
     public func run() throws {
         
+        
         print(path)
         print(tagFilter)
         print(tagQuery)
         
-        switch CCLogCore.generateGitLog(from: URL(string: "/Users/alexanderweiss/Documents/Programming/swift-projects/LoggingKit")!) {
+        switch CCLogCore.generateGitLog(
+            tagQuery: "1.0.0..",
+            from: URL(string: "/Users/alexanderweiss/Documents/Programming/swift-projects/LoggingKit")!) {
         case .success:
             throw ExitCode.success
         case let .failure(error):

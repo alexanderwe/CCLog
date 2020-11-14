@@ -151,13 +151,11 @@ extension Parser {
     
 }
 
-
 extension Parser {
     public static func skip(_ p: Self) -> Parser<Input, Void> {
         p.map {_ in () }
     }
 }
-
 
 extension Parser where Output == Void {
     
