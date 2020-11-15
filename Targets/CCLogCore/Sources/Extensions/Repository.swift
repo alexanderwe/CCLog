@@ -27,6 +27,60 @@ extension Repository {
             }
             
             return self.traverseCommits(from: startCommit, to: endCommit)
+        case let .rightOpen(start):
+            let startTag = self.tag(named: start)
+            
+            guard case let .success(tagRefStart) = startTag,
+                  case let .success(allTags) = self.allTags(),
+                  case let .success(startCommit) = self.commit(tagRefStart.oid),
+                  let tagRefEnd = allTags.first,
+                  case let .success(endCommit) = self.commit(tagRefEnd.oid)
+            else {
+                return .failure(NSError.init())
+            }
+            
+            return self.traverseCommits(from: startCommit, to: endCommit)
+            
+        case let .leftOpen(end):
+            
+            let endTag = self.tag(named: end)
+            
+            guard case let .success(allTags) = self.allTags(),
+                  let tagRefStart = allTags.last,
+                  case let .success(startCommit) = self.commit(tagRefStart.oid),
+                  case let .success(tagRefEnd) = endTag,
+                  case let .success(endCommit) = self.commit(tagRefEnd.oid)
+            else {
+                return .failure(NSError.init())
+            }
+            return self.traverseCommits(from: startCommit, to: endCommit)
+        
+        case let .single(tag):
+            let endTag = self.tag(named: tag)
+            guard case let .success(tagRefEnd) = endTag,
+                  case let .success(endCommit) = self.commit(tagRefEnd.oid),
+                  case let .success(allTags) = self.allTags()
+            else {
+                return .failure(NSError.init())
+            }
+            
+            var startCommit: Commit?
+            
+            let indexOfStartTag = allTags.firstIndex(where: {$0 == tagRefEnd})
+            
+            if let indexOfStartTag = indexOfStartTag {
+                let previousTagIndex = (indexOfStartTag + 1)
+                if previousTagIndex < allTags.count {
+                    let startTag = allTags[previousTagIndex]
+                    guard case let .success(startCommitH) = self.commit(startTag.oid) else {
+                        return .failure(NSError.init())
+                    }
+                    startCommit = startCommitH
+                }
+            }
+            
+            
+            return self.traverseCommits(from: startCommit, to: endCommit)
             
         default:
             fatalError("Unimplemented")
@@ -36,13 +90,11 @@ extension Repository {
     }
     
     
-    
-    func traverseCommits(from start: Commit, to end: Commit) -> Result<[Commit], NSError> {
+    private func traverseCommits(from start: Commit?, to end: Commit, startInclusive: Bool = false) -> Result<[Commit], NSError> {
         
         // Function parameters
         var commits: [Commit] = []
         var walker: OpaquePointer? = nil
-        
         
         // Free memory after successful revwalk
         defer { git_revwalk_free(walker) }
@@ -53,8 +105,12 @@ extension Repository {
             return .failure(NSError(gitError: gitError, pointOfFailure: "git_revwalk_new"))
         }
         
-        gitError = git_revwalk_push_range(walker, "\(start.oid.description)..\(end.oid.description)")
-        print("\(end.oid.description)..\(start.oid.description)")
+        if start == nil {
+            var oid: git_oid = end.oid.oid
+            gitError = git_revwalk_push(walker, &oid)
+        } else {
+            gitError = git_revwalk_push_range(walker, "\(start!.oid.description)..\(end.oid.description)")
+        }
         
         guard gitError == GIT_OK.rawValue else {
             return .failure(NSError(gitError: gitError, pointOfFailure: "git_revwalk_push_range"))
@@ -72,6 +128,10 @@ extension Repository {
             return .failure(NSError(gitError: gitError, pointOfFailure: "git_revwalk_next"))
         }
 
+        if startInclusive && start != nil {
+            commits.append(start!)
+        }
+        
         return .success(commits)
     }
     
