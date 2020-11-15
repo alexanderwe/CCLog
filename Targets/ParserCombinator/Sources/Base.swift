@@ -7,6 +7,10 @@
 
 import Foundation
 
+
+// Credit: https://www.pointfree.co
+
+
 // MARK: - Base
 public struct Parser<Input, Output> {
     public let run: (inout Input) -> Output?

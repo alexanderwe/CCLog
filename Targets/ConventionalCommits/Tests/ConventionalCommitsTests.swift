@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  ConventionalCommitsTests.swift
 //  
 //
 //  Created by Alexander Weiß on 14.11.20.
@@ -23,10 +23,4 @@ final class ConventionalCommitsTests: XCTestCase {
         XCTAssertEqual(commit.scope, "ci")
         XCTAssertEqual(commit.description, "Fix iOS and tvOS versions")
     }
-    
-    
-    static var allTests = [
-        ("testConventionalCommitParsing", testConventionalCommitParsing),
-    ]
-    
 }

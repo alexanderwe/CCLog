@@ -8,13 +8,13 @@
 import ParserCombinator
 
 public struct ConventionalCommit {
-   
+    
     public let type: String
     public let scope: String?
     public let description: String
     public let body: String?
     public let breaking: Bool
-    public let footer: String?
+    public let footers: [String]?
     
     
     private static let parser: Parser<Substring, ConventionalCommit> = {
@@ -50,7 +50,7 @@ public struct ConventionalCommit {
                     description: description,
                     body: nil,
                     breaking: isBreaking,
-                    footer: nil
+                    footers: nil
                 )
                 
             }
@@ -65,12 +65,55 @@ public struct ConventionalCommit {
         self = match
     }
     
-    internal init(type: String, scope: String?, description: String, body: String?, breaking: Bool, footer: String?) {
+    internal init(type: String, scope: String?, description: String, body: String?, breaking: Bool, footers: [String]?) {
         self.type = type
         self.scope = scope
         self.description = description
         self.body = body
         self.breaking = breaking
-        self.footer = footer
+        self.footers = footers
+    }
+}
+
+
+// MARK: - Footer
+extension ConventionalCommit {
+    public struct Footer {
+       
+        public let wordToken: String
+        public let value: String
+        public let isBreaking: Bool
+        
+        private static let parser: Parser<Substring, Footer> = {
+           
+            let breakingWordToken = Parser<Substring, Void>.prefix("BREAKING CHANGE").map { _ in "BREAKING CHANGE"[...] }
+            let regularWordToken = Parser<Substring, Substring>.prefix(while: { $0.isLetter || $0 == "-" })
+            
+            let colonSeperator = Parser<Substring, Void>.prefix(": ")
+            let hashTagSeperator = Parser<Substring, Void>.prefix(" #")
+            
+            let footer: Parser<Substring, Footer> =  Parser<Substring, Substring>.oneOf([breakingWordToken, regularWordToken])
+                .skip(.oneOf([colonSeperator, hashTagSeperator]))
+                .take(.prefix(while: { !$0.isNewline }))
+                .map { wordToken, value in
+                    return Footer(wordToken: String(wordToken), value: String(value), isBreaking: String(wordToken) == "BREAKING CHANGE")
+                }
+            return footer
+        }()
+        
+        
+        public init?(data: String) {
+            guard let match = Footer.parser.run(data[...]).match else {
+                return nil
+            }
+            
+            self = match
+        }
+        
+        internal init(wordToken: String, value: String, isBreaking: Bool) {
+            self.wordToken = wordToken
+            self.value = value
+            self.isBreaking = isBreaking
+        }
     }
 }
