@@ -6,11 +6,13 @@
 //
 
 import Foundation
+import Clibgit2
 
 // MARK: - CCLogError
 /// Errors specific to CCLog
 public enum CCLogError: Error {
     case gitError(error: GitError)
+    case tagQueryInvalid
 }
 
 // MARK: - GitError
@@ -24,7 +26,7 @@ extension GitError {
     init(from: NSError) {
         switch from.code {
         case -3:
-            //TODO: Looks a little but ugly
+            //TODO: Looks a little bit ugly
             let path = (from.userInfo["NSLocalizedDescription"] as? String)?.split(separator: "'")
             self = .failedToResolvePath(at: URL(string: String(path?[1] ?? "")))
         default:
@@ -32,3 +34,6 @@ extension GitError {
         }
     }
 }
+
+
+

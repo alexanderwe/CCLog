@@ -8,58 +8,42 @@
 import Foundation
 import ConventionalCommits
 import SwiftGit2
-
-
-
+import Clibgit2
 
 
 public enum CCLogCore {
-    public static func generateGitLog(from repository: URL) -> Result<Void, CCLogError> {
+    public static func generateGitLog(
+        tagQuery: String,
+        from repository: URL
+    ) -> Result<Void, CCLogError> {
         
-        let c = try? ConventionalCommit(data: "fix(ci-test)!: Include correct location for code coverage file")
-        print(c)
+        guard let tagQuery = TagQuery(data: tagQuery) else {
+            return .failure(.tagQueryInvalid)
+        }
+
         
-        
-        
-        let res = Repository.at(repository)
-        switch res {
+        switch Repository.at(repository) {
         case let .success(repo):
+            
+            let commits = repo.traverseCommits(from: tagQuery)
+            print(commits)
             break;
         case let .failure(error):
             return .failure(.gitError(error: GitError(from: error)))
         }
         
-        
-        
-        
         return .success(())
         
-        
-        
-        
-//        let url = URL(string: "./")!
-//        let res = Repository.at(url)
-//
-//        switch res {
-//        case let .success(repo):
-//
-//            let latestCommit = repo.commit(OID(string: "")!)
-//
-//
-//            switch latestCommit {
-//            case let .success(commit):
-//
-//                let c = try? ConventionalCommit(data: "fix(ci-test)!: Include correct location for code coverage file")
-//                print(c)
-//
-//            case let .failure(error):
-//                print("Could not get commit: \(error)")
-//            }
-//
-//        case let .failure(error):
-//            print("Could not open repository: \(error)")
-//        }
     }
-    
-    
+}
+
+
+extension Commit {
+    var firstMessageLine: String? {
+        if let firstParagraph = message.components(separatedBy: CharacterSet.newlines).first {
+            return firstParagraph
+        } else {
+            return nil
+        }
+    }
 }

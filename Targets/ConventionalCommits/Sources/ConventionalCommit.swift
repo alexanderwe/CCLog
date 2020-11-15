@@ -25,7 +25,7 @@ public struct ConventionalCommit {
         let anyLetter = Parser<Substring, Substring>.prefix(while: { $0.isLetter })
             .flatMap { $0.isEmpty ? .never : Parser.always($0) }
 
-        let anyCharacter = Parser<Substring, Substring>.prefix(while: { $0.isLetter || $0.isWhitespace || $0.isSymbol })
+        let anyCharacter = Parser<Substring, Substring>.prefix(while: { $0.isLetter || $0.isWhitespace || $0.isSymbol || $0.isNumber })
             .flatMap { $0.isEmpty ? .never : Parser.always($0) }
 
         

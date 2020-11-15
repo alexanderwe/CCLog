@@ -43,7 +43,17 @@ let package = Package(
             name: "CCLogTests",
             dependencies: ["CCLog"],
             path: "Targets/CCLog/Tests"
-        
         ),
+        .testTarget(
+            name: "CCLogCoreTests",
+            dependencies: ["CCLogCore"],
+            path: "Targets/CCLogCore/Tests"
+        ),
+        .testTarget(
+            name: "ConventionalCommitsTests",
+            dependencies: ["ConventionalCommits"],
+            path: "Targets/ConventionalCommits/Tests"
+        ),
+        
     ]
 )

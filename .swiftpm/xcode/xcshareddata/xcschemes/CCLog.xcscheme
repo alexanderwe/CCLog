@@ -94,6 +94,26 @@
                ReferencedContainer = "container:">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "CCLogCoreTests"
+               BuildableName = "CCLogCoreTests"
+               BlueprintName = "CCLogCoreTests"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "ConventionalCommitsTests"
+               BuildableName = "ConventionalCommitsTests"
+               BlueprintName = "ConventionalCommitsTests"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction
@@ -118,8 +138,8 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "-h"
-            isEnabled = "NO">
+            argument = "--tag-query &quot;1.0.0..v2.0.0&quot;"
+            isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>
    </LaunchAction>
