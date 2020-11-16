@@ -75,6 +75,67 @@ public struct ConventionalCommit {
     }
 }
 
+extension ConventionalCommit {
+    public struct Header {
+        
+        public let type: String
+        public let scope: String?
+        public let breaking: Bool
+        public let description: String
+        
+        private static let parser: Parser<Substring, Header> = {
+            let anyScope = Parser<Substring, Substring>.prefix(while: {  $0 != "(" && $0 != ")" && !$0.isNewline })
+                .flatMap { $0.isEmpty ? .never : Parser.always($0) }
+            
+            let anyLetter = Parser<Substring, Substring>.prefix(while: { $0.isLetter })
+                .flatMap { $0.isEmpty ? .never : Parser.always($0) }
+
+            let anyCharacter = Parser<Substring, Substring>.prefix(while: { $0.isLetter || $0.isWhitespace || $0.isSymbol || $0.isNumber })
+                .flatMap { $0.isEmpty ? .never : Parser.always($0) }
+
+            
+            let isBreaking = Parser<Substring, Void?>.optional(.prefix("!"))
+                .flatMap { $0 != nil ? .always(true) :  .always(false)}
+            
+            let type = anyLetter
+            
+            let scope = Parser.skip("(")
+                .take(anyScope)
+                .skip(")")
+            
+            return type
+                .take(.optional(scope))
+                .take(isBreaking)
+                .skip(": ")
+                .take(anyCharacter.map(String.init))
+                .map { type, scope, isBreaking, description in
+                    Header(
+                        type: String(type),
+                        scope: scope == nil ? nil: String(scope!),
+                        breaking: isBreaking,
+                        description: description
+                    )
+                }
+        }()
+        
+        public init?(data: String) {
+            guard let match = Header.parser.run(data[...]).match else {
+                return nil
+            }
+            
+            self = match
+        }
+        
+        internal init(type: String, scope: String?, breaking: Bool, description: String) {
+            self.type = type
+            self.scope = scope
+            self.breaking = breaking
+            self.description = description
+        }
+    }
+}
+
+
 
 // MARK: - Footer
 extension ConventionalCommit {
