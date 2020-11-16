@@ -29,7 +29,7 @@ public struct ConventionalCommit {
             .flatMap { $0.isEmpty ? .never : Parser.always($0) }
 
         
-        let isBreaking = Parser<Substring, Void>.prefix("!").optional
+        let isBreaking = Parser<Substring, Void?>.optional(.prefix("!"))
             .flatMap { $0 != nil ? .always(true) :  .always(false)}
         
         let type = anyLetter
@@ -39,7 +39,7 @@ public struct ConventionalCommit {
             .skip(")")
         
         return type
-            .take(scope.optional)
+            .take(.optional(scope))
             .take(isBreaking)
             .skip(": ")
             .take(anyCharacter.map(String.init))

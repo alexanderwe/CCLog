@@ -74,7 +74,7 @@ extension Parser where Input == Substring, Output == Character {
     }
 }
 
-// MARK: - Convenience
+// MARK: - ExpressibleBy*
 extension Parser: ExpressibleByUnicodeScalarLiteral where Input == Substring, Output == Void {
     public typealias UnicodeScalarLiteralType = StringLiteralType
 }
@@ -89,4 +89,16 @@ extension Parser: ExpressibleByStringLiteral where Input == Substring, Output ==
     public init(stringLiteral value: String) {
         self = .prefix(value[...])
     }
+}
+
+
+// MARK: - Convenience
+extension Parser where Input == Substring, Output == Substring {
+  public static var rest: Self {
+    Self { input in
+      let rest = input
+      input = ""
+      return rest
+    }
+  }
 }

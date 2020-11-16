@@ -21,7 +21,7 @@ extension TagQuery {
     
         let closedRange = Parser<Substring, Substring>.notEmpty(.prefix(upTo: ".."))
                 .skip("..")
-                .take(.notEmpty(.prefix(while: { _ in true })))
+                .take(.notEmpty(.rest))
                 .map {start, end in
                     TagQuery.closed(start: String(start), end: String(end))
                 }
@@ -33,12 +33,12 @@ extension TagQuery {
             }
         
         let leftOpenRange = Parser.skip("..")
-            .take(.notEmpty(.prefix(while: { _ in true })))
+            .take(.notEmpty(.rest))
             .map { end in
                 TagQuery.leftOpen(end: String(end))
             }
         
-        let singleTagRange = Parser<Substring, Substring>.prefix(while: { _ in true})
+        let singleTagRange = Parser<Substring, Substring>.rest
             .map { tag in
                 TagQuery.single(tag: String(tag))
             }
