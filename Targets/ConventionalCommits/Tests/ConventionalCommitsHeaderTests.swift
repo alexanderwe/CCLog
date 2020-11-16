@@ -17,7 +17,7 @@ final class ConventionalCommitsHeaderTests: XCTestCase {
         fix: Fix iOS and tvOS versions
         """
         
-        let commit = try XCTUnwrap(ConventionalCommit(data: commitMessage))
+        let commit = try XCTUnwrap(ConventionalCommit.Header(data: commitMessage))
         
         XCTAssertEqual(commit.type, "fix")
         XCTAssertNil(commit.scope)
@@ -30,7 +30,7 @@ final class ConventionalCommitsHeaderTests: XCTestCase {
         fix(ci): Fix iOS and tvOS versions
         """
         
-        let commit = try XCTUnwrap(ConventionalCommit(data: commitMessage))
+        let commit = try XCTUnwrap(ConventionalCommit.Header(data: commitMessage))
         
         XCTAssertEqual(commit.type, "fix")
         XCTAssertEqual(commit.scope, "ci")
@@ -43,7 +43,7 @@ final class ConventionalCommitsHeaderTests: XCTestCase {
         fix!: Fix iOS and tvOS versions
         """
         
-        let commit = try XCTUnwrap(ConventionalCommit(data: commitMessage))
+        let commit = try XCTUnwrap(ConventionalCommit.Header(data: commitMessage))
         
         XCTAssertEqual(commit.type, "fix")
         XCTAssertNil(commit.scope)
@@ -56,7 +56,7 @@ final class ConventionalCommitsHeaderTests: XCTestCase {
         fix(ci)!: Fix iOS and tvOS versions
         """
         
-        let commit = try XCTUnwrap(ConventionalCommit(data: commitMessage))
+        let commit = try XCTUnwrap(ConventionalCommit.Header(data: commitMessage))
         
         XCTAssertEqual(commit.type, "fix")
         XCTAssertEqual(commit.scope, "ci")
@@ -69,7 +69,7 @@ final class ConventionalCommitsHeaderTests: XCTestCase {
         fix(ci)!:
         """
         
-        XCTAssertNil(ConventionalCommit(data: commitMessage))
+        XCTAssertNil(ConventionalCommit.Header(data: commitMessage))
     }
     
     func testHeaderMissingType() throws {
@@ -77,7 +77,7 @@ final class ConventionalCommitsHeaderTests: XCTestCase {
         : Fix iOS and tvOS versions
         """
         
-        XCTAssertNil(ConventionalCommit(data: commitMessage))
+        XCTAssertNil(ConventionalCommit.Header(data: commitMessage))
     }
     
     static var allTests = [

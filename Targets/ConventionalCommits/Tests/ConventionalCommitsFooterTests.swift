@@ -42,9 +42,31 @@ final class ConventionalCommitsFooterTests: XCTestCase {
         XCTAssertEqual(footer.isBreaking, false)
     }
     
+    
+    func testMultipleFooters() throws {
+        
+        let p = ConventionalCommit.Footer
+            .parser
+            .zeroOrMore(separatedBy: .prefix("\n"))
+        
+        let footerMessage = """
+        Reviewed-by: Z
+        Refs #133
+        """
+        
+        let footers = try XCTUnwrap(p.run(footerMessage[...]).match)
+        
+        XCTAssertEqual(footers.count, 2)
+        XCTAssertEqual(footers[0].wordToken , "Reviewed-by")
+        XCTAssertEqual(footers[0].value , "Z")
+        XCTAssertEqual(footers[1].wordToken , "Refs")
+        XCTAssertEqual(footers[1].value , "133")
+    }
+    
     static var allTests = [
         ("testSingleBreakingChangeFooterParsing", testSingleBreakingChangeFooterParsing),
         ("testSingleColonSeperatedFooterParsing", testSingleColonSeperatedFooterParsing),
         ("testSingleHashtagSeperatedFooterParsing", testSingleHashtagSeperatedFooterParsing),
+        ("testMultipleFooters", testMultipleFooters),
     ]
 }
