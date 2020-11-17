@@ -45,7 +45,7 @@ final class ConventionalCommitsFooterTests: XCTestCase {
     
     func testMultipleFooters() throws {
         
-        let p = ConventionalCommit.Footer
+        let parser = ConventionalCommit.Footer
             .parser
             .zeroOrMore(separatedBy: .prefix("\n"))
         
@@ -54,7 +54,7 @@ final class ConventionalCommitsFooterTests: XCTestCase {
         Refs #133
         """
         
-        let footers = try XCTUnwrap(p.run(footerMessage[...]).match)
+        let footers = try XCTUnwrap(parser.run(footerMessage[...]).match)
         
         XCTAssertEqual(footers.count, 2)
         XCTAssertEqual(footers[0].wordToken , "Reviewed-by")

@@ -74,13 +74,12 @@ where
             guard !subsequence.isEmpty else { return subsequence }
             let original = input
             while !input.isEmpty {
-                if input.starts(with: subsequence) {
-                    return original[..<input.startIndex]
-                } else {
-                    let index = input.index(input.startIndex, offsetBy: subsequence.count)
-                    input = input[index...]
-                    return original[..<index]
-                }
+              if input.starts(with: subsequence) {
+                let index = input.index(input.startIndex, offsetBy: subsequence.count)
+                input = input[index...]
+                return original[..<index]
+              }
+              input.removeFirst()
             }
             input = original
             return nil

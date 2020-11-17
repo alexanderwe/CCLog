@@ -7,25 +7,48 @@
 
 import ParserCombinator
 
+
 public struct ConventionalCommit {
    
     
     
     public let header: Header
-    public let footers: [Footer]?
+    public let body: String?
+    public let footers: [Footer]
     
     
     
     private static let parser: Parser<Substring, ConventionalCommit> = {
-        let header = ConventionalCommit.Header.parser
-        let footer = ConventionalCommit.Footer.parser
+        let headerParser = ConventionalCommit.Header.parser
+        let singleFooterParser = ConventionalCommit.Footer.parser
+        
+        //TODO: Explain regexes and maybe try to use something else to find the
+        //beginning of the footers?
+        let bodyParser = Parser<Substring, Void>.skip("\n")
+            .take(.oneOf([
+                            .prefix(upTo: "\nBREAKING CHANGE"),
+                            .prefix(upTo: "BREAKING CHANGE"),
+                            Parser<Substring,Substring>.prefix(upToRegex: " [\\n]?((?=\\S*['-]?)([a-zA-Z'-]+):\\s)|((?=\\S*['-]?)([a-zA-Z'-]+)\\s\\#)"),
+                            Parser<Substring,Substring>.prefix(upToRegex: "((?=\\S*['-]?)([a-zA-Z'-]+):\\s)|((?=\\S*['-]?)([a-zA-Z'-]+)\\s\\#)")]))
+        
+        let footersParser = Parser<Substring, Void?>.skip(.optional("\n"))
+            .take(singleFooterParser.zeroOrMore(separatedBy: .prefix("\n")))
         
         
-        return header
-            //.skip(Parser<Substring, Substring>.prefix(while: { $0.isNewline }))
-            .take(footer.zeroOrMore(separatedBy: .prefix("\n")))
-            .map { header, footers in
-               return ConventionalCommit(header: header, footers: footers)
+        return headerParser
+            .take(.optional(bodyParser))
+            .take(.optional(footersParser))
+            .map { header, body, footers in
+                
+                
+                
+                
+                // TODO: What to do when the body is empty ? Will the body be nil
+                // or will the body be an empty string ?
+                ConventionalCommit(header: header,
+                                   body: body == nil ? nil: String(body!),
+                                   footers: footers == nil ? []: footers!
+                )
             }
     }()
     
@@ -37,8 +60,9 @@ public struct ConventionalCommit {
         self = match
     }
     
-    internal init(header: ConventionalCommit.Header, footers: [ConventionalCommit.Footer]?) {
+    internal init(header: ConventionalCommit.Header, body: String?, footers: [ConventionalCommit.Footer]) {
         self.header = header
+        self.body = body
         self.footers = footers
     }
 }
@@ -70,13 +94,17 @@ extension ConventionalCommit {
             let scope = Parser.skip("(")
                 .take(anyScope)
                 .skip(")")
-            
+
             return type
                 .take(.optional(scope))
                 .take(isBreaking)
                 .skip(": ")
-                .take(anyCharacter.map(String.init))
+                .take(
+                    Parser<Substring, Substring>.oneOf([.prefix(through: "\n"), .rest])
+                        .map(String.init))
                 .map { type, scope, isBreaking, description in
+                    
+                    //TODO: Trim the \n at the end of the description
                     Header(
                         type: String(type),
                         scope: scope == nil ? nil: String(scope!),
