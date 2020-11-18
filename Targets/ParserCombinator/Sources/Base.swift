@@ -7,6 +7,10 @@
 
 import Foundation
 
+
+// Credit: https://www.pointfree.co
+
+
 // MARK: - Base
 public struct Parser<Input, Output> {
     public let run: (inout Input) -> Output?
@@ -28,10 +32,17 @@ extension Parser {
     public static var never: Self {
         Self { _ in nil }
     }
-    
-    public var optional: Parser<Input, Output?> {
-        .init { input in .some(self.run(&input)) }
+}
+
+// Optional
+extension Parser {
+  public static func optional<A>(
+    _ parser: Parser<Input, A>
+  ) -> Self where Output == A? {
+    .init { input in
+      .some(parser.run(&input))
     }
+  }
 }
 
 // MARK: - Parser amount

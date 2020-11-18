@@ -74,7 +74,7 @@ extension Parser where Input == Substring, Output == Character {
     }
 }
 
-// MARK: - Convenience
+// MARK: - ExpressibleBy*
 extension Parser: ExpressibleByUnicodeScalarLiteral where Input == Substring, Output == Void {
     public typealias UnicodeScalarLiteralType = StringLiteralType
 }
@@ -88,5 +88,44 @@ extension Parser: ExpressibleByStringLiteral where Input == Substring, Output ==
     
     public init(stringLiteral value: String) {
         self = .prefix(value[...])
+    }
+}
+
+
+// MARK: - Convenience
+extension Parser where Input == Substring, Output == Substring {
+  public static var rest: Self {
+    Self { input in
+      let rest = input
+      input = ""
+      return rest
+    }
+  }
+}
+
+
+extension Parser where Input == Substring, Output == Substring {
+    public static func prefix(upToRegex regex: String) -> Self {
+        Self { input in
+            
+            let strInput = String(input)
+            let regex = try! NSRegularExpression(pattern: regex, options: NSRegularExpression.Options.caseInsensitive)
+            let regexMatches = regex.matches(in: strInput, options: [], range: NSRange(location: 0, length: input.utf16.count))
+            
+            guard let regexMatch = regexMatches.first,
+                  let range = Range(regexMatch.range(at: 1), in: input)
+            else {
+                return nil
+            }
+            
+            
+            let endIndex = range.lowerBound
+            
+            let match = input[..<endIndex]
+            
+            input = input[endIndex...]
+            
+            return match
+        }
     }
 }
