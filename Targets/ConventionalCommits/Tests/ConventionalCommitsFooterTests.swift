@@ -12,7 +12,7 @@ import XCTest
 /// Tests related to parsing footers of a conventional commit message
 final class ConventionalCommitsFooterTests: XCTestCase {
     
-    func testSingleBreakingChangeFooterParsing() throws {
+    func testSingleBreakingChange() throws {
         
         let footerMessage = "BREAKING CHANGE: refactor to use JavaScript features not available in Node 6."
         let footer = try XCTUnwrap(ConventionalCommit.Footer(data: footerMessage))
@@ -22,7 +22,16 @@ final class ConventionalCommitsFooterTests: XCTestCase {
         XCTAssertEqual(footer.isBreaking, true)
     }
     
-    func testSingleColonSeperatedFooterParsing() throws {
+    func testSingleBreakingChangeHypen() throws {
+        let footerMessage = "BREAKING-CHANGE: refactor to use JavaScript features not available in Node 6."
+        let footer = try XCTUnwrap(ConventionalCommit.Footer(data: footerMessage))
+        
+        XCTAssertEqual(footer.wordToken, "BREAKING-CHANGE")
+        XCTAssertEqual(footer.value, "refactor to use JavaScript features not available in Node 6.")
+        XCTAssertEqual(footer.isBreaking, true)
+    }
+    
+    func testSingleColonSeperated() throws {
         
         let footerMessage = "Reviewed-by: Z"
         let footer = try XCTUnwrap(ConventionalCommit.Footer(data: footerMessage))
@@ -32,7 +41,7 @@ final class ConventionalCommitsFooterTests: XCTestCase {
         XCTAssertEqual(footer.isBreaking, false)
     }
     
-    func testSingleHashtagSeperatedFooterParsing() throws {
+    func testSingleHashtagSeperated() throws {
         
         let footerMessage = "Refs #133"
         let footer = try XCTUnwrap(ConventionalCommit.Footer(data: footerMessage))
@@ -64,9 +73,10 @@ final class ConventionalCommitsFooterTests: XCTestCase {
     }
     
     static var allTests = [
-        ("testSingleBreakingChangeFooterParsing", testSingleBreakingChangeFooterParsing),
-        ("testSingleColonSeperatedFooterParsing", testSingleColonSeperatedFooterParsing),
-        ("testSingleHashtagSeperatedFooterParsing", testSingleHashtagSeperatedFooterParsing),
+        ("testSingleBreakingChange", testSingleBreakingChange),
+        ("testSingleBreakingChangeHypen", testSingleBreakingChangeHypen),
+        ("testSingleColonSeperated", testSingleColonSeperated),
+        ("testSingleHashtagSeperated", testSingleHashtagSeperated),
         ("testMultipleFooters", testMultipleFooters),
     ]
 }

@@ -20,10 +20,10 @@ final class ConventionalCommitsTests: XCTestCase {
 
         let commit = try XCTUnwrap(ConventionalCommit(data: commitMessage))
         
-        XCTAssertEqual(commit.header.type, "fix")
-        XCTAssertEqual(commit.header.description, "Fix iOS and tvOS versions")
-        XCTAssertNil(commit.header.scope)
-        XCTAssertEqual(commit.header.breaking, false)
+        XCTAssertEqual(commit.type, "fix")
+        XCTAssertEqual(commit.description, "Fix iOS and tvOS versions")
+        XCTAssertNil(commit.scope)
+        XCTAssertEqual(commit.isBreaking, false)
         XCTAssertNil(commit.body)
         XCTAssertEqual(commit.footers.count, 0)
     }
@@ -34,22 +34,24 @@ final class ConventionalCommitsTests: XCTestCase {
         let commitMessage = """
         feat: allow provided config object to extend other configs
 
-        Reviewed-by: Z
+        BREAKING CHANGE: `extends` key in config file is now used for extending other config files
         """
         
         let commit = try XCTUnwrap(ConventionalCommit(data: commitMessage))
         
-        XCTAssertEqual(commit.header.type, "feat")
-        XCTAssertEqual(commit.header.description, "allow provided config object to extend other configs\n")
-        XCTAssertNil(commit.header.scope)
-        XCTAssertEqual(commit.header.breaking, false)
+        XCTAssertEqual(commit.type, "feat")
+        XCTAssertEqual(commit.description, "allow provided config object to extend other configs")
+        XCTAssertNil(commit.scope)
+        XCTAssertEqual(commit.isBreaking, true)
         
-        //TODO: Decide what to do with the body
-        //XCTAssertNil(commit.body)
+        XCTAssertNil(commit.body)
         XCTAssertEqual(commit.footers.count, 1)
+        XCTAssertEqual(commit.footers[0].isBreaking, true)
+        XCTAssertEqual(commit.footers[0].wordToken, "BREAKING CHANGE")
+        XCTAssertEqual(commit.footers[0].value, "`extends` key in config file is now used for extending other config files")
     }
     
-    func testHeaderWithFooter() throws {
+    func testBreakingChangeHeaderWithFooter() throws {
         
         let commitMessage = """
         refactor!: drop support for Node 6
@@ -58,12 +60,21 @@ final class ConventionalCommitsTests: XCTestCase {
         """
         
         let commit = try XCTUnwrap(ConventionalCommit(data: commitMessage))
-       
+        
+        XCTAssertEqual(commit.type, "refactor")
+        XCTAssertEqual(commit.description, "drop support for Node 6")
+        XCTAssertNil(commit.scope)
+        XCTAssertEqual(commit.isBreaking, true)
+        
+        XCTAssertNil(commit.body)
+        XCTAssertEqual(commit.footers.count, 1)
+        XCTAssertEqual(commit.footers[0].isBreaking, false)
+        XCTAssertEqual(commit.footers[0].wordToken, "Reviewed-by")
+        XCTAssertEqual(commit.footers[0].value, "Z")
     }
     
     
     func testMultiParagraphBodyAndMultipleFooters() throws {
-        
         
         let commitMessage = """
         fix: correct minor typos in code
@@ -72,11 +83,40 @@ final class ConventionalCommitsTests: XCTestCase {
 
         on typos fixed.
 
-        Reviewed-by: Z
+        Reviewed-by #Z
         Refs #133
         """
         
         let commit = try XCTUnwrap(ConventionalCommit(data: commitMessage))
+        
+        XCTAssertEqual(commit.type, "fix")
+        XCTAssertEqual(commit.description, "correct minor typos in code")
+        XCTAssertNil(commit.scope)
+        XCTAssertEqual(commit.isBreaking, false)
+        
+        XCTAssertEqual(commit.body, """
+        see the issue for details
+
+        on typos fixed.
+        """
+        )
+        XCTAssertEqual(commit.footers.count, 2)
+        XCTAssertEqual(commit.footers[0].isBreaking, false)
+        XCTAssertEqual(commit.footers[0].wordToken, "Reviewed-by")
+        XCTAssertEqual(commit.footers[0].value, "Z")
+        
+        XCTAssertEqual(commit.footers.count, 2)
+        XCTAssertEqual(commit.footers[1].isBreaking, false)
+        XCTAssertEqual(commit.footers[1].wordToken, "Refs")
+        XCTAssertEqual(commit.footers[1].value, "133")
     }
+    
+    
+    static var allTests = [
+        ("testNoBody", testNoBody),
+        ("testDescriptionAndBreakingChangeFooter", testDescriptionAndBreakingChangeFooter),
+        ("testBreakingChangeHeaderWithFooter", testBreakingChangeHeaderWithFooter),
+        ("testMultiParagraphBodyAndMultipleFooters", testMultiParagraphBodyAndMultipleFooters)
+    ]
    
 }

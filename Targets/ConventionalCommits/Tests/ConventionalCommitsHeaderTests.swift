@@ -12,7 +12,7 @@ import XCTest
 /// Tests related to parsing footers of a conventional commit message
 final class ConventionalCommitsHeaderTests: XCTestCase {
     
-    func testHeaderNoScope() throws {
+    func testNoScope() throws {
         let commitMessage = """
         fix: Fix iOS and tvOS versions
         """
@@ -25,7 +25,7 @@ final class ConventionalCommitsHeaderTests: XCTestCase {
         XCTAssertEqual(commit.description, "Fix iOS and tvOS versions")
     }
     
-    func testHeaderWithScope() throws {
+    func testWithScope() throws {
         let commitMessage = """
         fix(ci): Fix iOS and tvOS versions
         """
@@ -38,7 +38,7 @@ final class ConventionalCommitsHeaderTests: XCTestCase {
         XCTAssertEqual(commit.description, "Fix iOS and tvOS versions")
     }
     
-    func testHeaderBreakingChange() throws {
+    func testBreakingChange() throws {
         let commitMessage = """
         fix!: Fix iOS and tvOS versions
         """
@@ -51,7 +51,7 @@ final class ConventionalCommitsHeaderTests: XCTestCase {
         XCTAssertEqual(commit.description, "Fix iOS and tvOS versions")
     }
     
-    func testHeaderBreakingChangeWithScope() throws {
+    func testBreakingChangeWithScope() throws {
         let commitMessage = """
         fix(ci)!: Fix iOS and tvOS versions
         """
@@ -64,7 +64,7 @@ final class ConventionalCommitsHeaderTests: XCTestCase {
         XCTAssertEqual(commit.description, "Fix iOS and tvOS versions")
     }
     
-    func testHeaderMissingDescription() throws {
+    func testMissingDescription() throws {
         let commitMessage = """
         fix(ci)!:
         """
@@ -72,7 +72,7 @@ final class ConventionalCommitsHeaderTests: XCTestCase {
         XCTAssertNil(ConventionalCommit.Header(data: commitMessage))
     }
     
-    func testHeaderMissingType() throws {
+    func testMissingType() throws {
         let commitMessage = """
         : Fix iOS and tvOS versions
         """
@@ -81,12 +81,12 @@ final class ConventionalCommitsHeaderTests: XCTestCase {
     }
     
     static var allTests = [
-        ("testHeaderNoScope", testHeaderNoScope),
-        ("testHeaderWithScope", testHeaderWithScope),
-        ("testHeaderBreakingChange", testHeaderBreakingChange),
-        ("testHeaderBreakingChangeWithScope", testHeaderBreakingChangeWithScope),
-        ("testHeaderMissingDescription", testHeaderMissingDescription),
-        ("testHeaderMissingType", testHeaderMissingType),
+        ("testNoScope", testNoScope),
+        ("testWithScope", testWithScope),
+        ("testBreakingChange", testBreakingChange),
+        ("testBreakingChangeWithScope", testBreakingChangeWithScope),
+        ("testMissingDescription", testMissingDescription),
+        ("testMissingType", testMissingType),
     ]
 }
 

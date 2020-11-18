@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  ConventionalCommit.swift
 //  
 //
 //  Created by Alexander Weiß on 17.10.20.
@@ -7,29 +7,76 @@
 
 import ParserCombinator
 
-
+// MARK: - Conventional Commit
 public struct ConventionalCommit {
    
+    private let _header: Header
+    private let _body: String?
+    private let _footers: [Footer]
     
     
-    public let header: Header
-    public let body: String?
-    public let footers: [Footer]
+    public var type: String {
+        return _header.type
+    }
     
+    public var scope: String? {
+        return _header.scope
+    }
     
+    public var description: String {
+        return _header.description
+    }
+    
+    public var isBreaking: Bool {
+        return _header.breaking || _footers.map { $0.isBreaking }.contains(true)
+    }
+    
+    public var body: String? {
+        return _body
+    }
+    
+    public var footers: [Footer] {
+        return _footers
+    }
+}
+
+// MARK: Parser
+extension ConventionalCommit {
     
     private static let parser: Parser<Substring, ConventionalCommit> = {
+        
+        // When the body is empty the body will be nil
+        func convertSubstringToBody(substring: Substring?) -> String? {
+            if substring == nil {
+                return nil
+            } else {
+                let str = String(substring!)
+                
+                if (str.isEmpty) {
+                    return nil
+                }
+                
+                return str
+            }
+        }
+        
         let headerParser = ConventionalCommit.Header.parser
         let singleFooterParser = ConventionalCommit.Footer.parser
         
-        //TODO: Explain regexes and maybe try to use something else to find the
+        //TODO: maybe try to use something else to find the
         //beginning of the footers?
+  
+        // These regexes try to find the beginning of the footers section:
+        // 1. BREAKING CHANGE token after a new line
+        // 2. BREAKING CHANGE token without a new line
+        // 3. BREAKING-CHANGE token after a new line
+        // 4. BREAKING-CHANGE token without a new line
+        // 5. <Any hypen seperatable word>:<space> or <Any hypen seperatable word><space>#  after a new line
+        // 6. <Any hypen seperatable word>:<space> or <Any hypen seperatable word><space>#  without a new line
         let bodyParser = Parser<Substring, Void>.skip("\n")
-            .take(.oneOf([
-                            .prefix(upTo: "\nBREAKING CHANGE"),
-                            .prefix(upTo: "BREAKING CHANGE"),
-                            Parser<Substring,Substring>.prefix(upToRegex: " [\\n]?((?=\\S*['-]?)([a-zA-Z'-]+):\\s)|((?=\\S*['-]?)([a-zA-Z'-]+)\\s\\#)"),
-                            Parser<Substring,Substring>.prefix(upToRegex: "((?=\\S*['-]?)([a-zA-Z'-]+):\\s)|((?=\\S*['-]?)([a-zA-Z'-]+)\\s\\#)")]))
+            .take(.oneOf([Parser<Substring,Substring>.prefix(upToRegex: "[\\n]?(BREAKING CHANGE|BREAKING-CHANGE)"), //1,2,3,4
+                          Parser<Substring,Substring>.prefix(upToRegex: "[\\n]?(((?=\\S*['-]?)([a-zA-Z'-]+):\\s)|((?=\\S*['-]?)([a-zA-Z'-]+)\\s\\#))") //5,6
+            ]))
         
         let footersParser = Parser<Substring, Void?>.skip(.optional("\n"))
             .take(singleFooterParser.zeroOrMore(separatedBy: .prefix("\n")))
@@ -39,14 +86,8 @@ public struct ConventionalCommit {
             .take(.optional(bodyParser))
             .take(.optional(footersParser))
             .map { header, body, footers in
-                
-                
-                
-                
-                // TODO: What to do when the body is empty ? Will the body be nil
-                // or will the body be an empty string ?
                 ConventionalCommit(header: header,
-                                   body: body == nil ? nil: String(body!),
+                                   body: convertSubstringToBody(substring: body)?.trimmingCharacters(in: .newlines),
                                    footers: footers == nil ? []: footers!
                 )
             }
@@ -61,12 +102,13 @@ public struct ConventionalCommit {
     }
     
     internal init(header: ConventionalCommit.Header, body: String?, footers: [ConventionalCommit.Footer]) {
-        self.header = header
-        self.body = body
-        self.footers = footers
+        self._header = header
+        self._body = body
+        self._footers = footers
     }
 }
 
+// MARK: - Header
 extension ConventionalCommit {
     public struct Header {
         
@@ -109,7 +151,7 @@ extension ConventionalCommit {
                         type: String(type),
                         scope: scope == nil ? nil: String(scope!),
                         breaking: isBreaking,
-                        description: description
+                        description: description.trimmingCharacters(in: .newlines)
                     )
                 }
         }()
@@ -132,7 +174,6 @@ extension ConventionalCommit {
 }
 
 
-
 // MARK: - Footer
 extension ConventionalCommit {
     public struct Footer {
@@ -144,6 +185,7 @@ extension ConventionalCommit {
         static let parser: Parser<Substring, Footer> = {
            
             let breakingWordToken = Parser<Substring, Void>.prefix("BREAKING CHANGE").map { _ in "BREAKING CHANGE"[...] }
+            let breakingWordHyphenToken = Parser<Substring, Void>.prefix("BREAKING-CHANGE").map { _ in "BREAKING-CHANGE"[...] }
             let regularWordToken = Parser<Substring, Substring>.prefix(while: { $0.isLetter || $0 == "-" })
             
             let colonSeperator = Parser<Substring, Void>.prefix(": ")
@@ -153,7 +195,7 @@ extension ConventionalCommit {
                 .skip(.oneOf([colonSeperator, hashTagSeperator]))
                 .take(.prefix(while: { !$0.isNewline }))
                 .map { wordToken, value in
-                    return Footer(wordToken: String(wordToken), value: String(value), isBreaking: String(wordToken) == "BREAKING CHANGE")
+                    return Footer(wordToken: String(wordToken), value: String(value), isBreaking: String(wordToken) == "BREAKING CHANGE" || String(wordToken) == "BREAKING-CHANGE")
                 }
             return footer
         }()
