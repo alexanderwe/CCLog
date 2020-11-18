@@ -118,9 +118,22 @@ extension Repository {
         
         var oid: git_oid = git_oid()
         var revWalkError: Int32 = GIT_OK.rawValue
+        var lastTag: Tag?
+        
+        
+        
+        let alltags = self.allTags()
     
         while (revWalkError = git_revwalk_next(&oid, walker), revWalkError).1 == GIT_OK.rawValue {
-            let c = self.commit(OID(oid))
+            
+            let oidD = OID(oid)
+            
+            
+            
+           
+            let tag = self.tag(named: "test-tag")
+            let c = self.commit(oidD)
+            print(try! c.get().message)
             commits.append(try! c.get())
         }
         

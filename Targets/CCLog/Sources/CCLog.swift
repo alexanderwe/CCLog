@@ -61,7 +61,7 @@ A Swift command-line tool to generate change log files for conventional commits
         print(tagQuery)
         
         switch CCLogCore.generateGitLog(
-            tagQuery: "test-tag",
+            tagQuery: "1.0.0..test-tag",
             from: URL(string: "/Users/alexanderweiss/Documents/Programming/swift-projects/LoggingKit")!) {
         case .success:
             throw ExitCode.success

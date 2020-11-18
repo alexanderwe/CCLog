@@ -11,6 +11,8 @@ import SwiftGit2
 import Clibgit2
 
 
+
+
 public enum CCLogCore {
     public static func generateGitLog(
         tagQuery: String,
@@ -25,8 +27,15 @@ public enum CCLogCore {
         switch Repository.at(repository) {
         case let .success(repo):
             
-            let commits = repo.traverseCommits(from: tagQuery)
-            print(commits)
+            guard case let .success(commits) = repo.traverseCommits(from: tagQuery) else {
+                return .failure(.failedToQueryTags)
+            }
+            
+            let ccommits = commits.map { ConventionalCommit(data: $0.message)}
+            ccommits.forEach {
+                print($0?.type)
+            }
+            
             break;
         case let .failure(error):
             return .failure(.gitError(error: GitError(from: error)))

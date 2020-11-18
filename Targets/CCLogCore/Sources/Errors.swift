@@ -13,6 +13,7 @@ import Clibgit2
 public enum CCLogError: Error {
     case gitError(error: GitError)
     case tagQueryInvalid
+    case failedToQueryTags
 }
 
 // MARK: - GitError
