@@ -14,6 +14,7 @@ public enum CCLogError: Error {
     case gitError(error: GitError)
     case tagQueryInvalid
     case failedToQueryTags
+    case failedToOpenRepository
 }
 
 // MARK: - GitError

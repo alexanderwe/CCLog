@@ -10,49 +10,27 @@ import ConventionalCommits
 import SwiftGit2
 import Clibgit2
 
-
-
-
 public enum CCLogCore {
     public static func generateGitLog(
         tagQuery: String,
-        from repository: URL
-    ) -> Result<Void, CCLogError> {
+        from repositoryURL: URL
+    ) -> Result<ChangeLog, CCLogError> {
         
         guard let tagQuery = TagQuery(data: tagQuery) else {
             return .failure(.tagQueryInvalid)
         }
 
-        
-        switch Repository.at(repository) {
-        case let .success(repo):
-            
-            guard case let .success(commits) = repo.traverseCommits(from: tagQuery) else {
-                return .failure(.failedToQueryTags)
-            }
-            
-            let ccommits = commits.map { ConventionalCommit(data: $0.message)}
-            ccommits.forEach {
-                print($0?.type)
-            }
-            
-            break;
-        case let .failure(error):
-            return .failure(.gitError(error: GitError(from: error)))
+        guard case let .success(repository) = Repository.at(repositoryURL) else {
+            return .failure(.failedToOpenRepository)
         }
         
-        return .success(())
-        
-    }
-}
-
-
-extension Commit {
-    var firstMessageLine: String? {
-        if let firstParagraph = message.components(separatedBy: CharacterSet.newlines).first {
-            return firstParagraph
-        } else {
-            return nil
+        guard case let .success(commits) = repository.traverseCommits(from: tagQuery),
+              case let .success(tags) = repository.traverseTags(from: tagQuery) else {
+            return .failure(.failedToQueryTags)
         }
+        
+        let changelog = ChangeLog(commits: commits, tags: tags)
+    
+         return .success(changelog)
     }
 }
