@@ -25,10 +25,16 @@ let package = Package(
         ),
         .target(name: "CCLogCore",
                 dependencies: [ "ConventionalCommits",
+                                "SemanticVersioning",
                                 "SwiftGit2",
                                 .product(name: "ArgumentParser", package: "swift-argument-parser")
                 ],
                 path: "Targets/CCLogCore/Sources"
+        ),
+        .target(
+            name: "SemanticVersioning",
+            dependencies: ["ParserCombinator"],
+            path: "Targets/SemanticVersioning/Sources"
         ),
         .target(
             name: "ConventionalCommits",
@@ -53,6 +59,11 @@ let package = Package(
             name: "ConventionalCommitsTests",
             dependencies: ["ConventionalCommits"],
             path: "Targets/ConventionalCommits/Tests"
+        ),
+        .testTarget(
+            name: "SemanticVersioningTests",
+            dependencies: ["SemanticVersioning"],
+            path: "Targets/SemanticVersioning/Tests"
         ),
         
     ]
