@@ -10,7 +10,7 @@ import ParserCombinator
 
 // MARK: - SemanticVersion
 struct SemanticVersion {
-  
+
     let core: Core
     let preReleaseIdentifiers: [String]
     let buildIdentifiers: [String]
@@ -43,7 +43,6 @@ extension SemanticVersion {
         let preReleaseIdentifiersParser = Parser<Substring, Void>.skip("-")
             .take(preReleaseIdentifier.zeroOrMore(separatedBy: "."))
         
-        
         // Build identifiers
         let buildIdentifier = alphaNumericAndHypen
             .map(String.init)
@@ -69,7 +68,53 @@ extension SemanticVersion {
         
         self = match
     }
+    
+    internal init(major: Int, minor: Int, patch: Int, preReleaseIdentifiers: [String] = [], buildIdentifiers: [String] = []) {
+        self.core = Core(major: major, minor: minor, patch: patch)
+        self.preReleaseIdentifiers = preReleaseIdentifiers
+        self.buildIdentifiers = buildIdentifiers
+    }
 }
+
+//MARK: - Comparable
+extension SemanticVersion: Comparable {
+    static func == (lhs: SemanticVersion, rhs: SemanticVersion) -> Bool {
+        return !(lhs < rhs) && !(lhs > rhs)
+    }
+    
+    //Credit: https://github.com/glwithu06/Semver.swift/blob/master/Sources/Semver.swift
+    static func <(lhs: SemanticVersion, rhs: SemanticVersion) -> Bool {
+        
+        for (left, right) in zip([lhs.major, lhs.minor, lhs.patch],  [rhs.major, rhs.minor, rhs.patch]) where left != right {
+            return left < right
+        }
+        
+        // If both vesions are equal, preReleaseIdentifiers are needed to be checked
+        if lhs.preReleaseIdentifiers.count == 0 { return false }
+        if rhs.preReleaseIdentifiers.count == 0 { return true }
+        
+        for (l, r) in zip(lhs.preReleaseIdentifiers, rhs.preReleaseIdentifiers) {
+               switch (l.isNumber, r.isNumber) {
+               case (true, true):
+                   let result = l.compare(r, options: .numeric)
+                   if result == .orderedSame {
+                       continue
+                   }
+                   return result == .orderedAscending
+               case (true, false): return true
+               case (false, true): return false
+               default:
+                   if l == r {
+                       continue
+                   }
+                   return l < r
+               }
+           }
+
+        return lhs.preReleaseIdentifiers.count < rhs.preReleaseIdentifiers.count
+    }
+}
+
 
 // MARK: - Core
 extension SemanticVersion {
@@ -88,5 +133,12 @@ extension SemanticVersion {
                     return Core(major:major, minor: minor, patch: patch)
                 }
         }()
+    }
+}
+
+// MARK: - Helpers
+extension String {
+    fileprivate var isNumber: Bool {
+        return !isEmpty && rangeOfCharacter(from: CharacterSet.decimalDigits.inverted) == nil
     }
 }
