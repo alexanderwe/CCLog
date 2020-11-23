@@ -9,9 +9,61 @@ import Foundation
 import SwiftGit2
 import Clibgit2
 
+extension Array {
+    func unique<T:Hashable>(by: ((Element) -> (T)))  -> [Element] {
+        var set = Set<T>() //the unique list kept in a Set for fast retrieval
+        var arrayOrdered = [Element]() //keeping the unique list of elements but ordered
+        for value in self {
+            if !set.contains(by(value)) {
+                set.insert(by(value))
+                arrayOrdered.append(value)
+            }
+        }
+
+        return arrayOrdered
+    }
+}
+
 extension Repository {
     
-    func traverseCommits(from query: TagQuery) -> Result<[Commit], NSError> {
+    func allCommits() -> Result<[Commit], NSError> {
+        var commits: [Commit] = []
+        
+        guard case let .success(branches) = self.localBranches() else {
+            return .failure(.init())
+        }
+        
+        branches.forEach {
+            let commitIterator = self.commits(in: $0)
+            while let commitIteratorElement = commitIterator.next() {
+                
+                guard case let .success(commit) = commitIteratorElement else {
+                    return
+                }
+                
+                commits.append(commit)
+            }
+        }
+        
+        let unique = commits
+            .unique(by: { $0.oid })
+            .sorted(by: { $0.author.time.compare($1.author.time) == .orderedDescending })
+        
+        return .success(unique)
+        
+    }
+}
+
+
+extension Repository {
+
+    /// Calculate the start and end commit from a `TagQuery` instance
+    /// - Parameter query: Query used to calculate start and end
+    /// - Returns: Result containing the start and end commit of the query
+    private func findStartEnd(from query: TagQuery) -> Result<(Commit?, Commit), NSError> {
+        
+        var startCommitToReturn: Commit!
+        var endCommitToReturn: Commit!
         
         switch query {
         case let .closed(start, end):
@@ -25,8 +77,9 @@ extension Repository {
             else {
                 return .failure(NSError.init())
             }
+            startCommitToReturn = startCommit
+            endCommitToReturn = endCommit
             
-            return self.traverseCommits(from: startCommit, to: endCommit)
         case let .rightOpen(start):
             let startTag = self.tag(named: start)
             
@@ -39,7 +92,8 @@ extension Repository {
                 return .failure(NSError.init())
             }
             
-            return self.traverseCommits(from: startCommit, to: endCommit)
+            startCommitToReturn = startCommit
+            endCommitToReturn = endCommit
             
         case let .leftOpen(end):
             
@@ -53,7 +107,8 @@ extension Repository {
             else {
                 return .failure(NSError.init())
             }
-            return self.traverseCommits(from: startCommit, to: endCommit)
+            startCommitToReturn = startCommit
+            endCommitToReturn = endCommit
         
         case let .single(tag):
             let endTag = self.tag(named: tag)
@@ -65,9 +120,11 @@ extension Repository {
             }
             
             var startCommit: Commit?
-            
+
+            // Find the tag before the `tag`
+            // If there is no tag before `tag` means startCommit = nil and so we start from the beginning of the repository
             let indexOfStartTag = allTags.firstIndex(where: {$0 == tagRefEnd})
-            
+
             if let indexOfStartTag = indexOfStartTag {
                 let previousTagIndex = (indexOfStartTag + 1)
                 if previousTagIndex < allTags.count {
@@ -79,17 +136,76 @@ extension Repository {
                 }
             }
             
-            
-            return self.traverseCommits(from: startCommit, to: endCommit)
-            
-        default:
-            fatalError("Unimplemented")
+            startCommitToReturn = startCommit
+            endCommitToReturn = endCommit
         }
         
-        return .success([])
+        return .success((startCommitToReturn, endCommitToReturn))
+    }
+    
+
+    func traverseCommits(from query: TagQuery) -> Result<[Commit], NSError> {
+        switch self.findStartEnd(from: query) {
+        case let .success((startCommit, endCommit)):
+            return self.traverseCommits(from: startCommit, to: endCommit)
+        case let .failure(error):
+            return .failure(error)
+        }
     }
     
     
+    func traverseTags(from query: TagQuery) -> Result<[TagReference], NSError> {
+        switch self.findStartEnd(from: query) {
+        case let .success((startCommit, endCommit)):
+            return  self.traverseTags(from: startCommit, to: endCommit)
+        case let .failure(error):
+            return .failure(error)
+        }
+    }
+    
+    
+    /// Traverse through commits from the `end` to `start` and collect every tag that references a commi on the way.
+    ///
+    /// This method uses git_revwalk to walk from `end` to `start`. If the start commit is nil this method will
+    /// traverse the complete history beginning from `end` -> so up to the initial commit of the repository.
+    ///
+    /// The tags are ordered from  descending according to the commit time.
+    ///
+    /// - Parameters:
+    ///   - start: The start commit
+    ///   - end: The end commit
+    ///   - startInclusive: Flag to include the start commit in traversal
+    /// - Returns: Result containing the requested commits or an error
+    private func traverseTags(from start: Commit?, to end: Commit, startInclusive: Bool = false) -> Result<[TagReference], NSError>  {
+        
+        let allTags = Dictionary(grouping: try! self.allTags().get()) { $0.oid }
+        var tagsToReturn: [TagReference] = []
+
+        guard case let commits = try? self.traverseCommits(from: start, to: end, startInclusive: startInclusive).get() else {
+            return .failure(.init())
+        }
+        
+        commits?.forEach {
+            if let tag = allTags[$0.oid] {
+                tagsToReturn.append(tag.first!)
+            }
+        }
+        return .success(tagsToReturn)
+    }
+    
+    /// Traverse through and collect commits from the start to end commit.
+    ///
+    /// This method uses git_revwalk to walk from `end` to `start`. If the start commit is nil this method will
+    /// traverse the complete history beginning from `end` -> so up to the initial commit of the repository.
+    ///
+    /// The commits are ordered from `end` to `start`. This normally means the commits are order descending according
+    /// to the commit time.
+    ///
+    /// - Parameters:
+    ///   - start: The start commit
+    ///   - end: The end commit
+    ///   - startInclusive: Flag to include the start commit in traversal
+    /// - Returns: Result containing the requested commits or an error
     private func traverseCommits(from start: Commit?, to end: Commit, startInclusive: Bool = false) -> Result<[Commit], NSError> {
         
         // Function parameters
@@ -118,25 +234,22 @@ extension Repository {
         
         var oid: git_oid = git_oid()
         var revWalkError: Int32 = GIT_OK.rawValue
-    
-        while (revWalkError = git_revwalk_next(&oid, walker), revWalkError).1 == GIT_OK.rawValue {
-            let c = self.commit(OID(oid))
-            commits.append(try! c.get())
-        }
         
-        if revWalkError != GIT_ITEROVER.rawValue {
-            return .failure(NSError(gitError: gitError, pointOfFailure: "git_revwalk_next"))
-        }
+        while (revWalkError = git_revwalk_next(&oid, walker), revWalkError).1 == GIT_OK.rawValue {
+           let c = self.commit(OID(oid))
+           commits.append(try! c.get())
+       }
+       
+       if revWalkError != GIT_ITEROVER.rawValue {
+           return .failure(NSError(gitError: gitError, pointOfFailure: "git_revwalk_next"))
+       }
 
-        if startInclusive && start != nil {
-            commits.append(start!)
-        }
+       if startInclusive && start != nil {
+           commits.append(start!)
+       }
         
         return .success(commits)
     }
-    
-    
-    
 }
 
 

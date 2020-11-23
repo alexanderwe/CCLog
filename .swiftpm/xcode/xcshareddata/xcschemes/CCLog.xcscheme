@@ -76,6 +76,34 @@
                ReferencedContainer = "container:">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "SemanticVersioning"
+               BuildableName = "SemanticVersioning"
+               BlueprintName = "SemanticVersioning"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "SemanticVersioningTests"
+               BuildableName = "SemanticVersioningTests"
+               BlueprintName = "SemanticVersioningTests"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -111,6 +139,16 @@
                BlueprintIdentifier = "ConventionalCommitsTests"
                BuildableName = "ConventionalCommitsTests"
                BlueprintName = "ConventionalCommitsTests"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "SemanticVersioningTests"
+               BuildableName = "SemanticVersioningTests"
+               BlueprintName = "SemanticVersioningTests"
                ReferencedContainer = "container:">
             </BuildableReference>
          </TestableReference>
