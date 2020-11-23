@@ -9,11 +9,11 @@ import Foundation
 import ParserCombinator
 
 // MARK: - SemanticVersion
-struct SemanticVersion {
+public struct SemanticVersion {
 
     let core: Core
-    let preReleaseIdentifiers: [String]
-    let buildIdentifiers: [String]
+    public let preReleaseIdentifiers: [String]
+    public let buildIdentifiers: [String]
     
     public var major: Int {
         return core.major
@@ -78,12 +78,12 @@ extension SemanticVersion {
 
 //MARK: - Comparable
 extension SemanticVersion: Comparable {
-    static func == (lhs: SemanticVersion, rhs: SemanticVersion) -> Bool {
+    public static func == (lhs: SemanticVersion, rhs: SemanticVersion) -> Bool {
         return !(lhs < rhs) && !(lhs > rhs)
     }
     
     //Credit: https://github.com/glwithu06/Semver.swift/blob/master/Sources/Semver.swift
-    static func <(lhs: SemanticVersion, rhs: SemanticVersion) -> Bool {
+    public static func <(lhs: SemanticVersion, rhs: SemanticVersion) -> Bool {
         
         for (left, right) in zip([lhs.major, lhs.minor, lhs.patch],  [rhs.major, rhs.minor, rhs.patch]) where left != right {
             return left < right

@@ -39,7 +39,11 @@ extension ChangeLog {
             
             let remaining = commits[endIndex...]
             commits = Array(remaining)
-            let release = Release(version: Version(value: tagReference.name), tag: tagReference, changeSet: ChangeSet(from: foundCommits))
+            
+            
+            var tagName = tagReference.name.deletingPrefix("v")
+            
+            let release = Release(version: Version(value: tagName), tag: tagReference, changeSet: ChangeSet(from: foundCommits))
             foundReleases.append(release)
         }
             
@@ -48,3 +52,9 @@ extension ChangeLog {
     }
 }
 
+extension String {
+    fileprivate func deletingPrefix(_ prefix: String) -> String {
+        guard self.hasPrefix(prefix) else { return self }
+        return String(self.dropFirst(prefix.count))
+    }
+}

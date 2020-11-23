@@ -24,9 +24,11 @@ public enum CCLogCore {
             return .failure(.failedToOpenRepository)
         }
         
+        //TODO: Improve performance. Here we go traverse the repository twice. Once for the commits
+        //and once for the tags
         guard case let .success(commits) = repository.traverseCommits(from: tagQuery),
               case let .success(tags) = repository.traverseTags(from: tagQuery) else {
-            return .failure(.failedToQueryTags)
+            return .failure(.failedToCollectCommits)
         }
         
         let changelog = ChangeLog(commits: commits, tags: tags)

@@ -9,6 +9,52 @@ import Foundation
 import SwiftGit2
 import Clibgit2
 
+extension Array {
+    func unique<T:Hashable>(by: ((Element) -> (T)))  -> [Element] {
+        var set = Set<T>() //the unique list kept in a Set for fast retrieval
+        var arrayOrdered = [Element]() //keeping the unique list of elements but ordered
+        for value in self {
+            if !set.contains(by(value)) {
+                set.insert(by(value))
+                arrayOrdered.append(value)
+            }
+        }
+
+        return arrayOrdered
+    }
+}
+
+extension Repository {
+    
+    func allCommits() -> Result<[Commit], NSError> {
+        var commits: [Commit] = []
+        
+        guard case let .success(branches) = self.localBranches() else {
+            return .failure(.init())
+        }
+        
+        branches.forEach {
+            let commitIterator = self.commits(in: $0)
+            while let commitIteratorElement = commitIterator.next() {
+                
+                guard case let .success(commit) = commitIteratorElement else {
+                    return
+                }
+                
+                commits.append(commit)
+            }
+        }
+        
+        let unique = commits
+            .unique(by: { $0.oid })
+            .sorted(by: { $0.author.time.compare($1.author.time) == .orderedDescending })
+        
+        return .success(unique)
+        
+    }
+}
+
+
 extension Repository {
 
     /// Calculate the start and end commit from a `TagQuery` instance
@@ -93,6 +139,7 @@ extension Repository {
             startCommitToReturn = startCommit
             endCommitToReturn = endCommit
         }
+        
         return .success((startCommitToReturn, endCommitToReturn))
     }
     
@@ -133,15 +180,13 @@ extension Repository {
         
         let allTags = Dictionary(grouping: try! self.allTags().get()) { $0.oid }
         var tagsToReturn: [TagReference] = []
-        
+
         guard case let commits = try? self.traverseCommits(from: start, to: end, startInclusive: startInclusive).get() else {
             return .failure(.init())
         }
         
         commits?.forEach {
             if let tag = allTags[$0.oid] {
-                
-                tag.first?.oid
                 tagsToReturn.append(tag.first!)
             }
         }
