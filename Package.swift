@@ -14,7 +14,8 @@ let package = Package(
     ],
      dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser", .exact("0.3.1")),
-        .package(url: "https://github.com/kareman/SwiftGit2", .branch("spm-binary-target"))
+        .package(url: "https://github.com/kareman/SwiftGit2", .branch("spm-binary-target")),
+        .package(url: "https://github.com/stencilproject/Stencil.git", .exact("0.14.0"))
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
@@ -27,6 +28,7 @@ let package = Package(
                 dependencies: [ "ConventionalCommits",
                                 "SemanticVersioning",
                                 "SwiftGit2",
+                                "Stencil",
                                 .product(name: "ArgumentParser", package: "swift-argument-parser")
                 ],
                 path: "Targets/CCLogCore/Sources"

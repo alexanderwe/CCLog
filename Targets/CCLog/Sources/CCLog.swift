@@ -32,7 +32,12 @@ A Swift command-line tool to generate change log files for conventional commits
         "Path to your git repository",
         discussion: "If no path is provided the current directory is used."
     ))
-    var path: Path = Path(argument: "./")!
+    var gitPath: Path = Path(argument: "./")!
+    
+    @Argument(help: ArgumentHelp(
+        "Path to your changelog template"
+    ))
+    var templatePath: Path?
     
     @Option(name: [.customShort("f"), .long], help: "Regular expression of git tags to filter git tags")
     var tagFilter: String?
@@ -47,8 +52,8 @@ A Swift command-line tool to generate change log files for conventional commits
     
     // MARK: - Validation
     public func validate() throws {
-        guard path.url != nil else {
-            throw ValidationError("Provided path is not valid")
+        guard gitPath.url != nil else {
+            throw ValidationError("Provided git path is not valid")
         }
     }
     
@@ -56,8 +61,10 @@ A Swift command-line tool to generate change log files for conventional commits
     public func run() throws {
         
         switch CCLogCore.generateGitLog(
-            tagQuery: "1.0.0..v2.0.0",
-            from: URL(string: "/Users/alexanderweiss/Documents/Programming/swift-projects/LoggingKit")!
+            tagQuery: "build/release/1.1.3/23",
+            tagFilter: "[a-z]at",
+            from: URL(string: "/Users/alexanderweiss/Documents/Projects/DrAusbuettel/wunddoku/wunddoku-ios")!,
+            on: URL(string: "/Users/alexanderweiss/Desktop/changelog_template.md")!
         ) {
         case .success:
             throw ExitCode.success

@@ -32,7 +32,6 @@ extension ChangeLog {
            
             let endIndex = commits.prefix(while: { $0.oid != tagReference.oid }).endIndex + 1
             
-            
             let foundCommits = Array(commits[..<endIndex])
             
             print("Found \(foundCommits.count) commits for tag")
@@ -40,10 +39,12 @@ extension ChangeLog {
             let remaining = commits[endIndex...]
             commits = Array(remaining)
             
-            
             var tagName = tagReference.name.deletingPrefix("v")
             
-            let release = Release(version: Version(value: tagName), tag: tagReference, changeSet: ChangeSet(from: foundCommits))
+            let release = Release(version: Version(value: tagName),
+                                  tag: tagReference,
+                                  changeSet: ChangeSet(from: foundCommits)
+            )
             foundReleases.append(release)
         }
             
