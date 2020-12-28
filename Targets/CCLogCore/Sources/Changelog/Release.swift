@@ -7,7 +7,7 @@
 
 import Foundation
 import SwiftGit2
-import SemanticVersioning
+import SemanticVersioningKit
 
 /// Represents a mapping from a git tag to a specific version
 /// and the corresponding changes made to the repository
