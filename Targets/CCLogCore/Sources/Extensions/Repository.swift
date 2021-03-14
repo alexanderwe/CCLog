@@ -114,19 +114,34 @@ extension Repository {
             let endTag = self.tag(named: tag)
             guard case let .success(tagRefEnd) = endTag,
                   case let .success(endCommit) = self.commit(tagRefEnd.oid),
-                  case let .success(allTags) = self.allTags()
+                  case var .success(allTags) = self.allTags()
             else {
                 return .failure(NSError.init())
             }
             
+            
+            
+            // The start commit to search
             var startCommit: Commit?
+            
+            
+            // Query all tags from the repository and order it by their commit time
+            // Latest tag is the first in the array
+            // Oldest tag is the last in the array
+            allTags = allTags.sorted(by: { (ref1, ref2) -> Bool in
+                guard case let .success(commit1) = self.commit(ref1.oid),
+                      case let .success(commit2) = self.commit(ref2.oid) else {
+                    return false
+                }
+                return commit1.author.time.compare(commit2.author.time) == .orderedDescending
+            })
+            
+            // Find the tag before the `end tag`
+            // If there is no tag before `end tag` means startCommit = nil and so we start from the beginning of the repository
+            let indexOfEndTag = allTags.firstIndex(where: {$0 == tagRefEnd})
 
-            // Find the tag before the `tag`
-            // If there is no tag before `tag` means startCommit = nil and so we start from the beginning of the repository
-            let indexOfStartTag = allTags.firstIndex(where: {$0 == tagRefEnd})
-
-            if let indexOfStartTag = indexOfStartTag {
-                let previousTagIndex = (indexOfStartTag + 1)
+            if let indexOfEndTag = indexOfEndTag {
+                let previousTagIndex = (indexOfEndTag + 1)
                 if previousTagIndex < allTags.count {
                     let startTag = allTags[previousTagIndex]
                     guard case let .success(startCommitH) = self.commit(startTag.oid) else {
@@ -154,10 +169,10 @@ extension Repository {
     }
     
     
-    func traverseTags(from query: TagQuery) -> Result<[TagReference], NSError> {
+    func traverseTags(from query: TagQuery, filteredBy filter: TagFilter?) -> Result<[TagReference], NSError> {
         switch self.findStartEnd(from: query) {
         case let .success((startCommit, endCommit)):
-            return  self.traverseTags(from: startCommit, to: endCommit)
+            return  self.traverseTags(from: startCommit, to: endCommit, filteredBy: filter)
         case let .failure(error):
             return .failure(error)
         }
@@ -174,10 +189,15 @@ extension Repository {
     /// - Parameters:
     ///   - start: The start commit
     ///   - end: The end commit
+    ///   - filteredBy: Filter to filter found tags
     ///   - startInclusive: Flag to include the start commit in traversal
     /// - Returns: Result containing the requested commits or an error
-    private func traverseTags(from start: Commit?, to end: Commit, startInclusive: Bool = false) -> Result<[TagReference], NSError>  {
-        
+    private func traverseTags(from start: Commit?,
+                              to end: Commit,
+                              filteredBy filter: TagFilter?,
+                              startInclusive: Bool = false
+    ) -> Result<[TagReference], NSError>  {
+
         let allTags = Dictionary(grouping: try! self.allTags().get()) { $0.oid }
         var tagsToReturn: [TagReference] = []
 

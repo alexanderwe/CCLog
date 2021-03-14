@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import ParserCombinator
+import Parsing
 
 // MARK: - TagQuery
 enum TagQuery {
@@ -17,38 +17,42 @@ enum TagQuery {
 }
 
 extension TagQuery {
-    private static let parser: Parser<Substring, TagQuery> = {
-    
-        let closedRange = Parser<Substring, Substring>.notEmpty(.prefix(upTo: ".."))
-                .skip("..")
-                .take(.notEmpty(.rest))
-                .map {start, end in
-                    TagQuery.closed(start: String(start), end: String(end))
-                }
+    private static let parser: AnyParser<Substring, TagQuery> = {
         
-        let rightOpenRange = Parser<Substring, Substring>.notEmpty(.prefix(upTo: ".."))
-            .skip("..")
+        let closedRange = Parsers.NotEmpty(PrefixUpTo<Substring>(".."))
+            .skip(StartsWith(".."))
+            .take(Parsers.NotEmpty(Parsers.Rest()))
+            .map { (start, end) -> TagQuery in
+                TagQuery.closed(start: String(start), end: String(end))
+            }
+            .eraseToAnyParser()
+        
+        let rightOpenRange = Parsers.NotEmpty(PrefixUpTo<Substring>(".."))
+            .skip(StartsWith(".."))
             .map { start in
                 TagQuery.rightOpen(start: String(start))
             }
+            .eraseToAnyParser()
         
-        let leftOpenRange = Parser.skip("..")
-            .take(.notEmpty(.rest))
+        let leftOpenRange = Parsers.Skip(StartsWith(".."))
+            .take(Parsers.NotEmpty(Parsers.Rest()))
             .map { end in
                 TagQuery.leftOpen(end: String(end))
             }
+            .eraseToAnyParser()
         
-        let singleTagRange = Parser<Substring, Substring>.rest
+        let singleTagRange = Parsers.Rest<Substring>()
             .map { tag in
                 TagQuery.single(tag: String(tag))
             }
+            .eraseToAnyParser()
         
-        return Parser.oneOf([closedRange, rightOpenRange, leftOpenRange, singleTagRange])
-    
+        return Parsers.OneOfMany(closedRange, rightOpenRange, leftOpenRange, singleTagRange).eraseToAnyParser()
+        
     }()
     
     public init?(data: String) {
-        guard let match = TagQuery.parser.run(data[...]).match else {
+        guard let match = TagQuery.parser.parse(data[...]) else {
             return nil
         }
         
@@ -75,8 +79,28 @@ extension TagQuery: Equatable {
 }
 
 // MARK: - Parser extension
-extension Parser where Input == Substring, Output == Substring {
-    public static func notEmpty(_ p: Self) -> Parser<Input, Output> {
-        p.flatMap { $0.isEmpty ? .never : Parser.always($0) }
+extension Parsers {
+    
+    public struct NotEmpty<A>: Parser
+    where
+        A: Parser,
+        A.Input == Substring,
+        A.Output == Substring
+    {
+        public let parser: A
+        
+        @inlinable
+        public init(_ parser: A) {
+            self.parser = parser
+        }
+        
+        @inlinable
+        @inline(__always)
+        public func parse(_ input: inout A.Input) -> A.Output? {
+            return parser
+                .flatMap { $0.isEmpty ? Parsers.Fail().eraseToAnyParser() : Parsers.Always($0).eraseToAnyParser()  }
+                .parse(&input)
+        }
+        
     }
 }
