@@ -37,7 +37,7 @@ A Swift command-line tool to generate change log files for conventional commits
     @Argument(help: ArgumentHelp(
         "Path to your changelog template"
     ))
-    var templatePath: Path?
+    var templatePath: Path
     
     @Option(name: [.customShort("f"), .long], help: "Regular expression of git tags to filter git tags")
     var tagFilter: String?
@@ -55,6 +55,14 @@ A Swift command-line tool to generate change log files for conventional commits
         guard gitPath.url != nil else {
             throw ValidationError("Provided git path is not valid")
         }
+        
+        guard templatePath.url != nil else {
+            throw ValidationError("Provided template path is not valid")
+        }
+        
+        guard !tagQuery.isEmpty else {
+            throw ValidationError("Provided git query is not valid")
+        }
     }
     
     // MARK: - Run
@@ -64,7 +72,7 @@ A Swift command-line tool to generate change log files for conventional commits
             tagQuery: tagQuery,
             tagFilter: "[a-z]at",
             from: gitPath.url!,
-            on: URL(string: "/Users/alexanderweiss/Desktop/changelog_template.md")!
+            on: templatePath.url!
         ) {
         case .success:
             throw ExitCode.success

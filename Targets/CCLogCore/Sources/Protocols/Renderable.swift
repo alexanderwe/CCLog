@@ -7,7 +7,6 @@
 
 import Foundation
 
-
 protocol Renderable {
     func render() -> Result<String, NSError>
 }

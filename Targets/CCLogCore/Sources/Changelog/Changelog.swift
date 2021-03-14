@@ -17,7 +17,7 @@ public struct ChangeLog {
 
 extension ChangeLog {
         
-    init(commits: [Commit], tags: [TagReference]) {
+    init(commits: [Commit], tags: [TagReference], repository: Repository) {
         
         var commits: [Commit] = commits.reversed()
         let tags: [TagReference] = tags.reversed()
@@ -40,10 +40,11 @@ extension ChangeLog {
             commits = Array(remaining)
             
             var tagName = tagReference.name.deletingPrefix("v")
-            
+    
             let release = Release(version: Version(value: tagName),
                                   tag: tagReference,
-                                  changeSet: ChangeSet(from: foundCommits)
+                                  changeSet: ChangeSet(from: foundCommits),
+                                  date: try! repository.commit(tagReference.oid).get().author.time
             )
             foundReleases.append(release)
         }
@@ -53,8 +54,8 @@ extension ChangeLog {
     }
 }
 
-extension String {
-    fileprivate func deletingPrefix(_ prefix: String) -> String {
+fileprivate extension String {
+    func deletingPrefix(_ prefix: String) -> String {
         guard self.hasPrefix(prefix) else { return self }
         return String(self.dropFirst(prefix.count))
     }

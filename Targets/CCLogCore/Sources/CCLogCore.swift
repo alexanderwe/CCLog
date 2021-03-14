@@ -43,7 +43,7 @@ public enum CCLogCore {
             return .failure(.failedToCollectCommits)
         }
         
-        let changelog = ChangeLog(commits: commits, tags: tags)
+        let changelog = ChangeLog(commits: commits, tags: tags, repository: repository)
         render(changelog: changelog, on: template, output: output)
         
         
@@ -56,16 +56,21 @@ public enum CCLogCore {
             // Get the contents
             let template = try String(contentsOfFile: template.absoluteString, encoding: .utf8)
             
-            let context = [
-              "changelog": changelog
-            ]
+            let context = changelog.convertToStencilContext()
             
             let rendered = try environment.renderTemplate(string: template, context: context)
+            
+           
+            
             print(rendered)
+            print(context)
+
         }
         catch let error as NSError {
             print("Ooops! Something went wrong: \(error)")
         }
-    }
-    
+    }    
 }
+
+
+

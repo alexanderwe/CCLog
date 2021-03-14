@@ -15,6 +15,7 @@ struct Release {
     let version: Version
     let tag: TagReference
     let changeSet: ChangeSet
+    let date: Date    
 }
 
 /// Represents a version
