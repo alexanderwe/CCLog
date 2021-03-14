@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import ConventionalCommits
+import ConventionalCommitsKit
 import SwiftGit2
 import Clibgit2
 import Stencil
