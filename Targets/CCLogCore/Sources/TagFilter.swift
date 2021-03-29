@@ -12,10 +12,9 @@ struct TagFilter {
     let regex: NSRegularExpression
     private let filterString: String
     
-    public init?(string: String) {
-        filterString = string
-        
-        guard let reg = try? NSRegularExpression(pattern: string) else {
+    public init?(string: String) {        
+        filterString = string.replacingOccurrences(of: "\\", with: "\\\\")
+        guard let reg = try? NSRegularExpression(pattern: filterString) else {
             return nil
         }
         regex = reg

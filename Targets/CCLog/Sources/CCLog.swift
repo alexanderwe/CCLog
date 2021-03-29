@@ -70,7 +70,7 @@ A Swift command-line tool to generate change log files for conventional commits
         
         switch CCLogCore.generateGitLog(
             tagQuery: tagQuery,
-            tagFilter: "[a-z]at",
+            tagFilter: tagFilter,//"build\\/alpha\/(([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?)\/[0-9]*",
             from: gitPath.url!,
             on: templatePath.url!
         ) {

@@ -162,7 +162,7 @@ extension Repository {
     func traverseCommits(from query: TagQuery) -> Result<[Commit], NSError> {
         switch self.findStartEnd(from: query) {
         case let .success((startCommit, endCommit)):
-            return self.traverseCommits(from: startCommit, to: endCommit)
+            return self.traverseCommits(from: startCommit, to: endCommit, startInclusive: true)
         case let .failure(error):
             return .failure(error)
         }
@@ -172,14 +172,14 @@ extension Repository {
     func traverseTags(from query: TagQuery, filteredBy filter: TagFilter?) -> Result<[TagReference], NSError> {
         switch self.findStartEnd(from: query) {
         case let .success((startCommit, endCommit)):
-            return  self.traverseTags(from: startCommit, to: endCommit, filteredBy: filter)
+            return  self.traverseTags(from: startCommit, to: endCommit, filteredBy: filter, startInclusive: true)
         case let .failure(error):
             return .failure(error)
         }
     }
     
     
-    /// Traverse through commits from the `end` to `start` and collect every tag that references a commi on the way.
+    /// Traverse through commits from the `end` to `start` and collect every tag that references a commit on the way.
     ///
     /// This method uses git_revwalk to walk from `end` to `start`. If the start commit is nil this method will
     /// traverse the complete history beginning from `end` -> so up to the initial commit of the repository.
@@ -207,7 +207,18 @@ extension Repository {
         
         commits?.forEach {
             if let tag = allTags[$0.oid] {
-                tagsToReturn.append(tag.first!)
+                
+                guard let tagFilter = filter else {
+                    tagsToReturn.append(tag.first!)
+                    return
+                }
+                print(tag.first?.longName)
+                if tagFilter.regex.matches(tag.first?.longName ?? "") {
+                    tagsToReturn.append(tag.first!)
+                }
+                
+                
+             
             }
         }
         return .success(tagsToReturn)
@@ -228,6 +239,8 @@ extension Repository {
     /// - Returns: Result containing the requested commits or an error
     private func traverseCommits(from start: Commit?, to end: Commit, startInclusive: Bool = false) -> Result<[Commit], NSError> {
         
+        
+        print("Traversing commits from \(start!.oid) to \(end.oid)")
         // Function parameters
         var commits: [Commit] = []
         var walker: OpaquePointer? = nil
@@ -265,7 +278,7 @@ extension Repository {
        }
 
        if startInclusive && start != nil {
-           commits.append(start!)
+           commits.prepend(start!)
        }
         
         return .success(commits)
@@ -321,4 +334,3 @@ private func errorMessage(_ errorCode: Int32) -> String? {
         return nil
     }
 }
-

@@ -31,7 +31,7 @@ public enum CCLogCore {
             }
             filter = f
         }
-
+        
         guard case let .success(repository) = Repository.at(repositoryURL) else {
             return .failure(.failedToOpenRepository)
         }

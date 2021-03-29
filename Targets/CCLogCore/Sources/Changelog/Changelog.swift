@@ -49,7 +49,7 @@ extension ChangeLog {
             foundReleases.append(release)
         }
             
-        releases = foundReleases.reversed()
+        releases = foundReleases.sorted(using: [.keyPath(\.date)], order: .descending)
         unreleased  = ChangeSet(from: commits)
     }
 }
